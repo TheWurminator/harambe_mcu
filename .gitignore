@@ -31,3 +31,15 @@
 # Debug files
 *.dSYM/
 *.su
+
+#TICCS
+.xdchelp
+/.config
+/*launches
+/.launches
+/\.launches
+/*/Debug
+/*/Release
+/.jxbrowser-data
+/.metadata
+/RemoteSystemsTempFiles
