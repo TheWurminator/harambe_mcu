@@ -43,3 +43,6 @@
 /.jxbrowser-data
 /.metadata
 /RemoteSystemsTempFiles
+project_zero_app_cc2650em7id/TOOLS/src/sysbios/rom_sysbios.aem3
+project_zero_app_cc2650em7id/TOOLS/src/sysbios/makefile
+project_zero_app_cc2650em7id/TOOLS/src/makefile.libs
