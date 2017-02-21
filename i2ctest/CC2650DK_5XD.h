@@ -76,8 +76,8 @@ extern const PIN_Config BoardGpioInitTable[];
  */
 
 /* board i2c */
-#define Board_I2C0_SDA0                     IOID_5
-#define Board_I2C0_SCL0                     IOID_6
+#define Board_I2C0_SDA0                     IOID_2
+#define Board_I2C0_SCL0                     IOID_3
 
 /* UART Board */
 #define Board_UART_RX                       IOID_1          /* P1.7  */
