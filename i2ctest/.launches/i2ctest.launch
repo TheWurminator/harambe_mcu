@@ -24,6 +24,7 @@
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROJECT.Texas Instruments XDS110 USB Debug Probe_0/Cortex_M3_0" value="i2ctest"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_TARGET_CONFIG" value="${target_config_active_default:i2ctest}"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.Texas Instruments XDS110 USB Debug Probe/Cortex_M3_0" value="C:/Users\BeetleJuice\Desktop\harambe_mcu\i2ctest\Debug\i2ctest.out"/>
+<stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.Texas Instruments XDS110 USB Debug Probe_0/Cortex_M3_0" value="C:/Users\BeetleJuice\Desktop\harambe_mcu\i2ctest\Debug\i2ctest.out"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
 <listEntry value="/i2ctest"/>
 </listAttribute>
