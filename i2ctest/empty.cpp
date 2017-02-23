@@ -60,7 +60,7 @@
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
-I2C_Handle i2c;
+
 /*
  * Application LED pin configuration table:
  *   - All LEDs board LEDs are off.
@@ -76,45 +76,17 @@ PIN_Config ledPinTable[] = {
  */
 Void heartBeatFxn(UArg arg0, UArg arg1)
 {
+//    I2C_Handle      i2c;
+//    I2C_Params      i2cParams;
+//    I2C_Transaction i2cTransaction;
+//    uint8_t         txBuffer[1];
+//    uint8_t         rxBuffer[2];
+//    int             temperature;
+//    int             i;
 
-    I2C_Params i2cParams;
-    I2C_Transaction i2cTransaction;
-    uint8_t rxBuffer[1];
-    uint8_t txBuffer[1];
-    I2C_Params_init(&i2cParams);
-    i2cParams.bitRate = I2C_400kHz;
-    i2c = I2C_open(Board_I2C0, &i2cParams);
-    if (i2c == NULL) {
-        System_abort("Error Initializing I2C\n");
-        System_flush();
-    }
-    else {
-        System_printf("I2C Initialized!\n");
-        System_flush();
-    }
-    int i = 0;
-    while(i<4){
-        //Reading from the magnetometer
-        i2cTransaction.slaveAddress = 0x1e;
-        i2cTransaction.readBuf = rxBuffer;
-        i2cTransaction.readCount = 1;
-        i2cTransaction.writeCount = 1;
-        i2cTransaction.writeBuf = txBuffer;
+    LSM9DS1 thing;
+    thing.begin();
 
-        txBuffer[0] = WHO_AM_I_M;
-        if(I2C_transfer(i2c, &i2cTransaction)){
-            System_printf("At least this is working\n");
-            System_flush();
-            uint8_t name = rxBuffer[0];
-            System_printf("0x%x\n", name);
-            System_flush();
-        }
-        else{
-            System_printf("i2c bus fault \n");
-            System_flush();
-        }
-        i++;
-    }
     /* Point to the T ambient register and read its 2 bytes */
 //    txBuffer[0] = TMP007_OBJ_TEMP;
 //    i2cTransaction.slaveAddress = Board_TMP007_ADDR;
@@ -172,7 +144,7 @@ int main(void)
     Board_initGeneral();
     Board_initI2C();
     // Board_initSPI();
-    //Board_initUART();
+    Board_initUART();
     // Board_initWatchdog();
 
     /* Construct heartBeat Task  thread */
@@ -186,46 +158,9 @@ int main(void)
                   "Halt the target to view any SysMin contents in ROV.\n");
     /* SysMin will only print to the console when you call flush or exit */
     System_flush();
+
+    /* Start BIOS */
     BIOS_start();
 
-//    I2C_Params i2cParams;
-//    I2C_Transaction i2cTransaction;
-//    uint8_t rxBuffer[1];
-//    uint8_t txBuffer[1];
-//    I2C_Params_init(&i2cParams);
-//    i2cParams.bitRate = I2C_400kHz;
-//    i2c = I2C_open(Board_I2C0, &i2cParams);
-//    if (i2c == NULL) {
-//        System_abort("Error Initializing I2C\n");
-//        System_flush();
-//    }
-//    else {
-//        System_printf("I2C Initialized!\n");
-//        System_flush();
-//    }
-//    int i = 0;
-//    while(i<4){
-//        //Reading from the magnetometer
-//        i2cTransaction.slaveAddress = 0x1e;
-//        i2cTransaction.readBuf = rxBuffer;
-//        i2cTransaction.readCount = 1;
-//        i2cTransaction.writeCount = 2;
-//        i2cTransaction.writeBuf = txBuffer;
-//
-//        txBuffer[0] = WHO_AM_I_M;
-//        if(I2C_transfer(i2c, &i2cTransaction)){
-//            System_printf("Got to this point");
-//            System_flush();
-//            uint8_t name = rxBuffer[0];
-//            System_printf("0x%x\n", name);
-//            System_flush();
-//        }
-//        else{
-//            System_printf("i2c bus fault \n");
-//            System_flush();
-//        }
-//        Task_sleep(1000000 / Clock_tickPeriod);
-//        i++;
-//    }
     return (0);
 }

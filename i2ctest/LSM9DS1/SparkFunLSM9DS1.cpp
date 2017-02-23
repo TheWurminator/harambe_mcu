@@ -166,12 +166,9 @@ uint16_t LSM9DS1::begin()
     uint8_t xgTest = xgReadByte(WHO_AM_I_XG);   // Read the accel/mag WHO_AM_I
     uint16_t whoAmICombined = (xgTest << 8) | mTest;
 
-    if (whoAmICombined != ((WHO_AM_I_AG_RSP << 8) | WHO_AM_I_M_RSP)){
+    if (whoAmICombined != ((WHO_AM_I_AG_RSP << 8) | WHO_AM_I_M_RSP))
         return 0;
-    }
 
-    System_printf("Passed the whoami check\n");
-    System_flush();
     // Gyro initialization stuff:
     initGyro(); // This will "turn on" the gyro. Setting up interrupts, etc.
 
@@ -573,15 +570,17 @@ void LSM9DS1::readTemp()
 void LSM9DS1::readGyro()
 {
     uint8_t temp[6]; // We'll read six bytes from the gyro into temp
-    xgReadBytes(OUT_X_L_G, temp, 6);
-    gx = (temp[1] << 8) | temp[0]; // Store x-axis values into gx
-    gy = (temp[3] << 8) | temp[2]; // Store y-axis values into gy
-    gz = (temp[5] << 8) | temp[4]; // Store z-axis values into gz
-    if (_autoCalc)
+    if ( xgReadBytes(OUT_X_L_G, temp, 6) == 6) // Read 6 bytes, beginning at OUT_X_L_G
     {
-        gx -= gBiasRaw[X_AXIS];
-        gy -= gBiasRaw[Y_AXIS];
-        gz -= gBiasRaw[Z_AXIS];
+        gx = (temp[1] << 8) | temp[0]; // Store x-axis values into gx
+        gy = (temp[3] << 8) | temp[2]; // Store y-axis values into gy
+        gz = (temp[5] << 8) | temp[4]; // Store z-axis values into gz
+        if (_autoCalc)
+        {
+            gx -= gBiasRaw[X_AXIS];
+            gy -= gBiasRaw[Y_AXIS];
+            gz -= gBiasRaw[Z_AXIS];
+        }
     }
 }
 
@@ -1017,12 +1016,8 @@ uint8_t LSM9DS1::xgReadByte(uint8_t subAddress)
 {
     // Whether we're using I2C or SPI, read a byte using the
     // gyro-specific I2C address or SPI CS pin.
-    if (settings.device.commInterface == IMU_MODE_I2C){
-        System_printf("Look, it's working\n");
-        System_flush();
+    if (settings.device.commInterface == IMU_MODE_I2C)
         return I2CreadByte(_xgAddress, subAddress);
-    }
-
     return 0;
 }
 

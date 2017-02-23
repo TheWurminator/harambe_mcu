@@ -59,7 +59,6 @@ uint8_t TwoWire::write(uint8_t data){
         //In master transmitter mode
         if(txBufferLength >= BUFFER_LENGTH){
             System_printf("What in the fuck");
-            System_flush();
             return 1;
         }
         //Put byte in tx buffer
