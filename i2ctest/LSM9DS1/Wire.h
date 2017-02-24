@@ -24,13 +24,14 @@ public:
     uint8_t transmitting;
     uint8_t txBufferIndex;
     uint8_t txBufferLength;
-    uint8_t txbuffer[BUFFER_LENGTH];
-    uint8_t rxbuffer[BUFFER_LENGTH];
+    uint8_t txBuffer[BUFFER_LENGTH];
+    uint8_t rxBuffer[BUFFER_LENGTH];
     uint8_t rxBufferIndex;
+    //Just pull the max every time
     uint8_t rxBufferLength;
     void begin();
     void beginTransmission(uint8_t address);
-    uint8_t write(uint8_t subaddress);
+    uint8_t write(uint8_t something);
     uint8_t endTransmission(bool tf = true);
     uint8_t requestFrom(uint8_t, uint8_t);
     uint8_t read();

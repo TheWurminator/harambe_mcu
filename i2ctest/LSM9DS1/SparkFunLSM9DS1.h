@@ -19,6 +19,9 @@ local, and you've found our code helpful, please buy us a round!
 
 Distributed as-is; no warranty is given.
 ******************************************************************************/
+#ifndef __SparkFunLSM9DS1_H__
+#define __SparkFunLSM9DS1_H__
+
 
 #include "LSM9DS1_Registers.h"
 #include "LSM9DS1_Types.h"
@@ -512,3 +515,4 @@ protected:
     uint8_t I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count);
 };
 
+#endif // SFE_LSM9DS1_H //
