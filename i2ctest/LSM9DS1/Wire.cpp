@@ -39,16 +39,14 @@ uint8_t TwoWire::endTransmission(bool tf){
     i2cTransaction.writeBuf = txBuffer;
     i2cTransaction.readCount = rxBufferLength;
     i2cTransaction.writeCount = txBufferLength;
-    System_printf("Slave addr is : 0x%x\n", i2cTransaction.slaveAddress);
-    System_printf("i2c addr is : 0x%x\n", i2c);
-    System_printf("transaction addr is : 0x%x\n", &i2cTransaction);
-    System_flush();
+//    System_printf("Slave addr is : 0x%x\n", i2cTransaction.slaveAddress);
+//    System_printf("i2c addr is : 0x%x\n", i2c);
+//    System_printf("transaction addr is : 0x%x\n", &i2cTransaction);
+//    System_flush();
     while(!I2C_transfer(*i2c, &i2cTransaction)){
        System_printf("THIS SHIT SUCKS\n");
        System_flush();
     }
-    System_printf("Transfer Success\n");
-   System_flush();
    i2cTransaction.readCount = 0;
    txBufferLength = 0;
    txBufferIndex = 0;

@@ -162,24 +162,17 @@ uint16_t LSM9DS1::begin(I2C_Handle * thing)
 
     // Now, initialize our hardware interface.
     initI2C(thing);  // Initialize I2C
-    System_printf("wefweiufhweiufhwiuhfweiuhfwiuehf\n");
-    System_flush();
+
 
     // To verify communication, we can read from the WHO_AM_I register of
     // each device. Store those in a variable so we can return them.
     uint8_t mTest = mReadByte(WHO_AM_I_M);      // Read the gyro WHO_AM_I
-    System_printf("mtest\n");
-    System_flush();
     uint8_t xgTest = xgReadByte(WHO_AM_I_XG);   // Read the accel/mag WHO_AM_I
     uint16_t whoAmICombined = (xgTest << 8) | mTest;
 
     if (whoAmICombined != ((WHO_AM_I_AG_RSP << 8) | WHO_AM_I_M_RSP)){
-        System_printf("This didn't work\n");
-        System_flush();
         return 0;}
 
-    System_printf("All of this initialization worked\n");
-    System_flush();
     // Gyro initialization stuff:
     initGyro(); // This will "turn on" the gyro. Setting up interrupts, etc.
 

@@ -10,7 +10,7 @@
 #include <ti/sysbios/knl/Clock.h>
 #include <ti/sysbios/knl/Task.h>
 #include "../Board.h"
-#define BUFFER_LENGTH 8
+#define BUFFER_LENGTH 32
 #define WIRE_HAS_END 1
 
 

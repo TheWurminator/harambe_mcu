@@ -41,12 +41,13 @@
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Clock.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/knl/Semaphore.h>
 
 /* TI-RTOS Header files */
 #include <ti/drivers/I2C.h>
 #include <ti/drivers/PIN.h>
 // #include <ti/drivers/SPI.h>
-#include <ti/drivers/UART.h>
+//#include <ti/drivers/UART.h>
 // #include <ti/drivers/Watchdog.h>
 
 /* Board Header files */
@@ -59,14 +60,6 @@
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
-//I2C_Handle i2c;
-/*
- * Application LED pin configuration table:
- *   - All LEDs board LEDs are off.
- */
-PIN_Config ledPinTable[] = {
-    PIN_TERMINATE
-};
 
 LSM9DS1 imu;
 I2C_Handle      i2c;
@@ -82,55 +75,19 @@ Void heartBeatFxn(UArg arg0, UArg arg1)
         System_printf("FUCK \n");
         System_flush();
     }
-//      Wire.begin();
-//
-//      int i = 0;
-//      for(i;i<5;i++){
-//          Wire.beginTransmission(0x1e);
-//          Wire.write(WHO_AM_I_M);
-//          Wire.endTransmission();
-//          //Now its time to read
-//          System_printf("0x%x\n",Wire.read());
-//      }
+    while(1){
+        imu.readAccel();
+        imu.readGyro();
+        imu.readMag();
+        System_printf("Accel %d %d %d \n", imu.ax, imu.ay, imu.az);
+        System_printf("Gyro %d %d %d \n", imu.gx, imu.gy, imu.gz);
+        System_printf("Mag %d %d %d \n", imu.mx, imu.my, imu.mz);
+        System_flush();
+    }
+}
 
-//    I2C_Params i2cParams;
-//    I2C_Transaction i2cTransaction;
-//    uint8_t rxBuffer[1];
-//    uint8_t txBuffer[1];
-//    I2C_Params_init(&i2cParams);
-//    i2cParams.bitRate = I2C_400kHz;
-//    i2c = I2C_open(Board_I2C0, &i2cParams);
-//    if (i2c == NULL) {
-//        System_abort("Error Initializing I2C\n");
-//        System_flush();
-//    }
-//    else {
-//        System_printf("I2C Initialized!\n");
-//        System_flush();
-//    }
-//    int i = 0;
-//    while(i<4){
-//        //Reading from the magnetometer
-//        i2cTransaction.slaveAddress = 0x1e;
-//        i2cTransaction.readBuf = rxBuffer;
-//        i2cTransaction.readCount = 1;
-//        i2cTransaction.writeCount = 1;
-//        i2cTransaction.writeBuf = txBuffer;
-//
-//        txBuffer[0] = WHO_AM_I_M;
-//        if(I2C_transfer(i2c, &i2cTransaction)){
-//            System_printf("At least this is working\n");
-//            System_flush();
-//            uint8_t name = rxBuffer[0];
-//            System_printf("0x%x\n", name);
-//            System_flush();
-//        }
-//        else{
-//            System_printf("i2c bus fault \n");
-//            System_flush();
-//        }
-//        i++;
-//    }
+Void printData(){
+    Semaphore_pend(gyroSem);
 }
 
 /*
