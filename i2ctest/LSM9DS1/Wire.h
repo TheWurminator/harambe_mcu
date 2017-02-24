@@ -10,14 +10,14 @@
 #include <ti/sysbios/knl/Clock.h>
 #include <ti/sysbios/knl/Task.h>
 #include "../Board.h"
-#define BUFFER_LENGTH 32
+#define BUFFER_LENGTH 8
 #define WIRE_HAS_END 1
 
 
 class TwoWire{
 public:
     TwoWire();
-    I2C_Handle      i2c;
+    I2C_Handle *      i2c;
     I2C_Params      i2cParams;
     I2C_Transaction i2cTransaction;
     uint8_t txaddress;
@@ -29,7 +29,7 @@ public:
     uint8_t rxBufferIndex;
     //Just pull the max every time
     uint8_t rxBufferLength;
-    void begin();
+    void begin(I2C_Handle *);
     void beginTransmission(uint8_t address);
     uint8_t write(uint8_t something);
     uint8_t endTransmission(bool tf = true);

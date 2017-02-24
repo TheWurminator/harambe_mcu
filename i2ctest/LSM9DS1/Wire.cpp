@@ -8,12 +8,13 @@ TwoWire::TwoWire()
 {
 }
 //Purpose is to get i2c initialized
-void TwoWire::begin(){
+void TwoWire::begin(I2C_Handle * thing){
+    i2c = thing;
     I2C_Params_init(&i2cParams);
     i2cParams.bitRate = I2C_400kHz;
 //    i2cParams.transferMode = I2C_MODE_BLOCKING; //We want it to block on a semaphore
-    i2c = I2C_open(Board_I2C0, &i2cParams);
-    if (i2c == NULL) { //Kill the whole thing
+    *i2c = I2C_open(Board_I2C0, &i2cParams);
+    if (*i2c == NULL) { //Kill the whole thing
         System_abort("Error Initializing I2C\n");
         System_flush();
     }
@@ -38,15 +39,20 @@ uint8_t TwoWire::endTransmission(bool tf){
     i2cTransaction.writeBuf = txBuffer;
     i2cTransaction.readCount = rxBufferLength;
     i2cTransaction.writeCount = txBufferLength;
-    if(I2C_transfer(i2c, &i2cTransaction)){
-        System_printf("Transfer Success\n");
-        System_flush();
-        i2cTransaction.readCount = 0;
-        txBufferLength = 0;
-        txBufferIndex = 0;
-        return 0;
+    System_printf("Slave addr is : 0x%x\n", i2cTransaction.slaveAddress);
+    System_printf("i2c addr is : 0x%x\n", i2c);
+    System_printf("transaction addr is : 0x%x\n", &i2cTransaction);
+    System_flush();
+    while(!I2C_transfer(*i2c, &i2cTransaction)){
+       System_printf("THIS SHIT SUCKS\n");
+       System_flush();
     }
-    return 1;
+    System_printf("Transfer Success\n");
+   System_flush();
+   i2cTransaction.readCount = 0;
+   txBufferLength = 0;
+   txBufferIndex = 0;
+   return 0;
 }
 
 //Used to fill up the tx buffer byte by byte

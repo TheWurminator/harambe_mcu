@@ -54,13 +54,12 @@
 
 /*LSM9DS1 Files*/
 #include "LSM9DS1/SparkFunLSM9DS1.h"
-#include "LSM9DS1/Wire.h"
 
 #define TASKSTACKSIZE   512
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
-
+//I2C_Handle i2c;
 /*
  * Application LED pin configuration table:
  *   - All LEDs board LEDs are off.
@@ -69,6 +68,9 @@ PIN_Config ledPinTable[] = {
     PIN_TERMINATE
 };
 
+LSM9DS1 imu;
+I2C_Handle      i2c;
+
 /*
  *  ======== heartBeatFxn ========
  *  Toggle the Board_LED0. The Task_sleep is determined by arg0 which
@@ -76,66 +78,68 @@ PIN_Config ledPinTable[] = {
  */
 Void heartBeatFxn(UArg arg0, UArg arg1)
 {
-//    I2C_Handle      i2c;
-//    I2C_Params      i2cParams;
+    while(!imu.begin(&i2c)){
+        System_printf("FUCK \n");
+        System_flush();
+    }
+//      Wire.begin();
+//
+//      int i = 0;
+//      for(i;i<5;i++){
+//          Wire.beginTransmission(0x1e);
+//          Wire.write(WHO_AM_I_M);
+//          Wire.endTransmission();
+//          //Now its time to read
+//          System_printf("0x%x\n",Wire.read());
+//      }
+
+//    I2C_Params i2cParams;
 //    I2C_Transaction i2cTransaction;
-//    uint8_t         txBuffer[1];
-//    uint8_t         rxBuffer[2];
-//    int             temperature;
-//    int             i;
-
-    LSM9DS1 thing;
-    thing.begin();
-
-    /* Point to the T ambient register and read its 2 bytes */
-//    txBuffer[0] = TMP007_OBJ_TEMP;
-//    i2cTransaction.slaveAddress = Board_TMP007_ADDR;
-//    i2cTransaction.writeBuf = txBuffer;
-//    i2cTransaction.writeCount = 1;
-//    i2cTransaction.readBuf = rxBuffer;
-//    i2cTransaction.readCount = 2;
-//
-//    /* Take 20 samples and print them out onto the console */
-//    for (i = 0; i < 20; i++) {
-//        if (I2C_transfer(i2c, &i2cTransaction)) {
-//            /* Extract degrees C from the received data; see TMP102 datasheet */
-//            temperature = (rxBuffer[0] << 6) | (rxBuffer[1] >> 2);
-//
-//            /*
-//             * If the MSB is set '1', then we have a 2's complement
-//             * negative value which needs to be sign extended
-//             */
-//            if (rxBuffer[0] & 0x80) {
-//                temperature |= 0xF000;
-//            }
-//           /*
-//            * For simplicity, divide the temperature value by 32 to get rid of
-//            * the decimal precision; see TI's TMP007 datasheet
-//            */
-//            temperature /= 32;
-//
-//            System_printf("Sample %u: %d (C)\n", i, temperature);
-//        }
-//        else {
-//            System_printf("I2C Bus fault\n");
-//        }
-//
+//    uint8_t rxBuffer[1];
+//    uint8_t txBuffer[1];
+//    I2C_Params_init(&i2cParams);
+//    i2cParams.bitRate = I2C_400kHz;
+//    i2c = I2C_open(Board_I2C0, &i2cParams);
+//    if (i2c == NULL) {
+//        System_abort("Error Initializing I2C\n");
 //        System_flush();
-//        Task_sleep(1000000 / Clock_tickPeriod);
 //    }
-
-    /* Deinitialized I2C */
-//    I2C_close(i2c);
-//    System_printf("I2C closed!\n");
-//    System_flush();
-//    while (1) {
-//        Task_sleep((UInt)arg0);
+//    else {
+//        System_printf("I2C Initialized!\n");
+//        System_flush();
+//    }
+//    int i = 0;
+//    while(i<4){
+//        //Reading from the magnetometer
+//        i2cTransaction.slaveAddress = 0x1e;
+//        i2cTransaction.readBuf = rxBuffer;
+//        i2cTransaction.readCount = 1;
+//        i2cTransaction.writeCount = 1;
+//        i2cTransaction.writeBuf = txBuffer;
+//
+//        txBuffer[0] = WHO_AM_I_M;
+//        if(I2C_transfer(i2c, &i2cTransaction)){
+//            System_printf("At least this is working\n");
+//            System_flush();
+//            uint8_t name = rxBuffer[0];
+//            System_printf("0x%x\n", name);
+//            System_flush();
+//        }
+//        else{
+//            System_printf("i2c bus fault \n");
+//            System_flush();
+//        }
+//        i++;
 //    }
 }
 
 /*
  *  ======== main ========
  */
+
+#define LSM9DS1_M   0x1E // Would be 0x1C if SDO_M is LOW
+#define LSM9DS1_AG  0x6B // Would be 0x6A if SDO_AG is LOW
+
 int main(void)
 {
     Task_Params taskParams;
@@ -143,9 +147,6 @@ int main(void)
     /* Call board init functions */
     Board_initGeneral();
     Board_initI2C();
-    // Board_initSPI();
-    Board_initUART();
-    // Board_initWatchdog();
 
     /* Construct heartBeat Task  thread */
     Task_Params_init(&taskParams);
@@ -153,13 +154,15 @@ int main(void)
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
     Task_construct(&task0Struct, (Task_FuncPtr)heartBeatFxn, &taskParams, NULL);
+    imu.settings.device.commInterface = IMU_MODE_I2C;
+    imu.settings.device.mAddress = LSM9DS1_M;
+    imu.settings.device.agAddress = LSM9DS1_AG;
+
 
     System_printf("Starting the example\nSystem provider is set to SysMin. "
                   "Halt the target to view any SysMin contents in ROV.\n");
     /* SysMin will only print to the console when you call flush or exit */
     System_flush();
-
-    /* Start BIOS */
     BIOS_start();
 
     return (0);

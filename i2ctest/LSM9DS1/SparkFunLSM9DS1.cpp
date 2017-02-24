@@ -28,6 +28,7 @@ Distributed as-is; no warranty is given.
 //Needed for the system functions
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
+#include <ti/drivers/I2C.h>
 
 // Sensor Sensitivity Constants
 // Values set according to the typical specifications provided in
@@ -43,6 +44,7 @@ Distributed as-is; no warranty is given.
 #define SENSITIVITY_MAGNETOMETER_8   0.00029
 #define SENSITIVITY_MAGNETOMETER_12  0.00043
 #define SENSITIVITY_MAGNETOMETER_16  0.00058
+
 
 LSM9DS1::LSM9DS1()
 {
@@ -146,12 +148,11 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 }
 
 
-uint16_t LSM9DS1::begin()
+uint16_t LSM9DS1::begin(I2C_Handle * thing)
 {
     //! Todo: don't use _xgAddress or _mAddress, duplicating memory
     _xgAddress = settings.device.agAddress;
     _mAddress = settings.device.mAddress;
-
     constrainScales();
     // Once we have the scale values, we can calculate the resolution
     // of each sensor. That's what these functions are for. One for each sensor
@@ -160,7 +161,7 @@ uint16_t LSM9DS1::begin()
     calcaRes(); // Calculate g / ADC tick, stored in aRes variable
 
     // Now, initialize our hardware interface.
-    initI2C();  // Initialize I2C
+    initI2C(thing);  // Initialize I2C
     System_printf("wefweiufhweiufhwiuhfweiuhfwiuehf\n");
     System_flush();
 
@@ -1078,9 +1079,9 @@ uint8_t LSM9DS1::mReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count)
 }
 
 
-void LSM9DS1::initI2C()
+void LSM9DS1::initI2C(I2C_Handle * thing)
 {
-    Wire.begin();   // Initialize I2C library
+    Wire.begin(thing);   // Initialize I2C library
 }
 
 // Wire.h read and write protocols
@@ -1099,9 +1100,12 @@ uint8_t LSM9DS1::I2CreadByte(uint8_t address, uint8_t subAddress)
     Wire.beginTransmission(address);         // Initialize the Tx buffer
     Wire.write(subAddress);                  // Put slave register address in Tx buffer
     Wire.requestFrom(address, (uint8_t) 1);  // Read one byte from slave register address
+    System_printf("Address of 0x%x\n", address );
+    System_flush();
     //Moved the end transmission down here
-    Wire.endTransmission(false);             // Send the Tx buffer, but send a restart to keep connection alive
-
+    Wire.endTransmission();             // Send the Tx buffer, but send a restart to keep connection alive
+    System_printf("Transmission was completed\n");
+    System_flush();
     data = Wire.read();
     // Fill Rx buffer with result
     System_printf("The val is 0x%x\n", data);

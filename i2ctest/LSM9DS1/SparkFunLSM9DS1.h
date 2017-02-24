@@ -25,6 +25,7 @@ Distributed as-is; no warranty is given.
 
 #include "LSM9DS1_Registers.h"
 #include "LSM9DS1_Types.h"
+#include <ti/drivers/I2C.h>
 
 #define LSM9DS1_AG_ADDR(sa0)    ((sa0) == 0 ? 0x6A : 0x6B)
 #define LSM9DS1_M_ADDR(sa1)     ((sa1) == 0 ? 0x1C : 0x1E)
@@ -69,7 +70,7 @@ public:
     // begin() -- Initialize the gyro, accelerometer, and magnetometer.
     // This will set up the scale and output rate of each sensor. The values set
     // in the IMUSettings struct will take effect after calling this function.
-    uint16_t begin();
+    uint16_t begin(I2C_Handle *);
 
     void calibrate(bool autoCalc = true);
     void calibrateMag(bool loadIn = true);
@@ -487,7 +488,7 @@ protected:
     ///////////////////
     // initI2C() -- Initialize the I2C hardware.
     // This function will setup all I2C pins and related hardware.
-    void initI2C();
+    void initI2C(I2C_Handle *);
 
     // I2CwriteByte() -- Write a byte out of I2C to a register in the device
     // Input:
