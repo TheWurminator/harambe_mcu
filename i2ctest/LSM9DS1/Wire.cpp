@@ -11,8 +11,9 @@ TwoWire::TwoWire()
 void TwoWire::begin(){
     I2C_Params_init(&i2cParams);
     i2cParams.bitRate = I2C_400kHz;
+//    i2cParams.transferMode = I2C_MODE_BLOCKING; //We want it to block on a semaphore
     i2c = I2C_open(Board_I2C0, &i2cParams);
-    if (i2c == NULL) {
+    if (i2c == NULL) { //Kill the whole thing
         System_abort("Error Initializing I2C\n");
         System_flush();
     }
@@ -22,83 +23,54 @@ void TwoWire::begin(){
     }
 }
 
-
 //Initializing TX Buffer
 void TwoWire::beginTransmission(uint8_t address){
-    //set address of targeted slave
-    txaddress = address;
-    //Indicate that we're transmitting
-    transmitting = 1;
-    // reset tx buf iterator vars
+    i2cTransaction.slaveAddress = address;
     txBufferIndex = 0;
     txBufferLength = 0;
+    rxBufferIndex = 0;
+    rxBufferLength = 1;
 }
 
-//Send the TX Buffer, bust send restart to keep connection alive
+//Send the TX Buffer
 uint8_t TwoWire::endTransmission(bool tf){
-    //Send i2c
-    i2cTransaction.slaveAddress = txbuffer[0];
-    i2cTransaction.writeBuf = txbuffer;
+    i2cTransaction.readBuf = rxBuffer;
+    i2cTransaction.writeBuf = txBuffer;
+    i2cTransaction.readCount = rxBufferLength;
     i2cTransaction.writeCount = txBufferLength;
-    //Actually sending the byte
-    I2C_transfer(i2c, &i2cTransaction);
-    //Reset all of the variables
-    i2cTransaction.slaveAddress = 0;
-    i2cTransaction.writeBuf = 0;
-    i2cTransaction.writeCount = 0;
-    txBufferIndex = 0;
-    txBufferLength = 0;
-    // indicate that we are done transmitting
-    transmitting = 0;
-    return 0;
+    if(I2C_transfer(i2c, &i2cTransaction)){
+        System_printf("Transfer Success\n");
+        System_flush();
+        i2cTransaction.readCount = 0;
+        txBufferLength = 0;
+        txBufferIndex = 0;
+        return 0;
+    }
+    return 1;
 }
 
 //Used to fill up the tx buffer byte by byte
 uint8_t TwoWire::write(uint8_t data){
-    if(transmitting){
-        //In master transmitter mode
-        if(txBufferLength >= BUFFER_LENGTH){
-            System_printf("What in the fuck");
-            return 1;
-        }
-        //Put byte in tx buffer
-        txbuffer[txBufferIndex] = data;
-        ++txBufferIndex;
-        //Update amount in buffer
-        txBufferLength = txBufferIndex;
-    }
-    return 0; //Everything worked as planned
+    //Add data to the buffer
+    txBuffer[txBufferIndex] = data;
+    //Increment the counter and the length
+    txBufferLength = ++txBufferIndex;
+    return 0;
 }
 
+//Make it think that we actually read after the fact
 uint8_t TwoWire::requestFrom(uint8_t address, uint8_t quantity)
 {
-  // clamp to buffer length
-  if(quantity > BUFFER_LENGTH){
-    quantity = BUFFER_LENGTH;
-  }
-  // perform blocking read into buffer
-
-  //uint8_t read = twi_readFrom(address, rxBuffer, quantity, sendStop);
-  i2cTransaction.slaveAddress = address;
-  i2cTransaction.readBuf = rxbuffer;
-  i2cTransaction.readCount = quantity;
-  I2C_transfer(i2c, &i2cTransaction);
-  // set rx buffer iterator vars
-  rxBufferIndex = 0;
-  rxBufferLength = quantity;
-  return 0;
+    rxBufferLength = quantity;
+    return quantity;
 }
 
+//Return a byte from the rxbuffer
 uint8_t TwoWire::read(){
-    uint8_t value = 0;
-
-    //get each successive byte on each call
     if(rxBufferIndex < rxBufferLength){
-        value = rxbuffer[rxBufferIndex];
-        ++rxBufferIndex;
+        return rxBuffer[rxBufferIndex++];
     }
-
-    return value;
+    else return 1;
 }
 
 TwoWire Wire = TwoWire();
