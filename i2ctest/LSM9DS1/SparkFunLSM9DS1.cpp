@@ -45,6 +45,7 @@ Distributed as-is; no warranty is given.
 #define SENSITIVITY_MAGNETOMETER_12  0.00043
 #define SENSITIVITY_MAGNETOMETER_16  0.00058
 
+void * LSMRESET;
 
 LSM9DS1::LSM9DS1()
 {
@@ -148,7 +149,7 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 }
 
 
-uint16_t LSM9DS1::begin(I2C_Handle * thing)
+uint16_t LSM9DS1::begin(I2C_Handle * thing, void (* rstPtr)())
 {
     //! Todo: don't use _xgAddress or _mAddress, duplicating memory
     _xgAddress = settings.device.agAddress;
@@ -161,15 +162,15 @@ uint16_t LSM9DS1::begin(I2C_Handle * thing)
     calcaRes(); // Calculate g / ADC tick, stored in aRes variable
 
     // Now, initialize our hardware interface.
-    initI2C(thing);  // Initialize I2C
-
+    initI2C(thing,rstPtr);  // Initialize I2C
+    System_printf("i2c is initialized\n");
+    System_flush();
 
     // To verify communication, we can read from the WHO_AM_I register of
     // each device. Store those in a variable so we can return them.
     uint8_t mTest = mReadByte(WHO_AM_I_M);      // Read the gyro WHO_AM_I
     uint8_t xgTest = xgReadByte(WHO_AM_I_XG);   // Read the accel/mag WHO_AM_I
     uint16_t whoAmICombined = (xgTest << 8) | mTest;
-
     if (whoAmICombined != ((WHO_AM_I_AG_RSP << 8) | WHO_AM_I_M_RSP)){
         return 0;}
 
@@ -1072,9 +1073,9 @@ uint8_t LSM9DS1::mReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count)
 }
 
 
-void LSM9DS1::initI2C(I2C_Handle * thing)
+void LSM9DS1::initI2C(I2C_Handle * thing, void (*rstPtr)())
 {
-    Wire.begin(thing);   // Initialize I2C library
+    Wire.begin(thing, rstPtr);   // Initialize I2C library
 }
 
 // Wire.h read and write protocols

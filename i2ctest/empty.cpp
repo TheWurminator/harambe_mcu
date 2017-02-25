@@ -37,6 +37,9 @@
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
 
+//NEED THIS FOR A SEMAPHORE TO WORK!!!!!!!!!!!!!!!!
+#include <xdc/cfg/global.h>
+
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Clock.h>
@@ -58,10 +61,27 @@
 
 #define TASKSTACKSIZE   512
 
+//Main task
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
 
-LSM9DS1 imu;
+//Printing Task
+Task_Struct printerStruct;
+Char printerStack[TASKSTACKSIZE];
+
+//LSM Reset Task
+Task_Struct lsmResetStruct;
+Char lsmResetStack[TASKSTACKSIZE];
+
+static PIN_State rstPinState;
+static PIN_Handle rstPinHandle;
+
+PIN_Config rstPinTable[] = {
+    Board_LSM0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+    PIN_TERMINATE
+};
+
+LSM9DS1         imu;
 I2C_Handle      i2c;
 
 /*
@@ -69,25 +89,49 @@ I2C_Handle      i2c;
  *  Toggle the Board_LED0. The Task_sleep is determined by arg0 which
  *  is configured for the heartBeat Task instance.
  */
+void resetLSM(){
+    System_printf("Resetting\n");
+    System_flush();
+    Semaphore_post(lsmSem);
+    Semaphore_pend(lsmWaitSem, BIOS_WAIT_FOREVER);
+    System_printf("Yo, we finished the lsmwaitsem\n");
+    System_flush();
+}
+
 Void heartBeatFxn(UArg arg0, UArg arg1)
 {
-    while(!imu.begin(&i2c)){
+    while(!imu.begin(&i2c, &resetLSM)){
         System_printf("FUCK \n");
         System_flush();
     }
+
     while(1){
         imu.readAccel();
         imu.readGyro();
         imu.readMag();
+        Semaphore_post(printSem);
+    }
+}
+
+//Actually resets the LSM9DS1
+Void resetAccel(){
+    for(;;){
+        Semaphore_pend(lsmSem, BIOS_WAIT_FOREVER);
+        PIN_setOutputValue(rstPinHandle, Board_LSM0, 0);
+        Task_sleep(10000);
+        PIN_setOutputValue(rstPinHandle, Board_LSM0, 1);
+        Semaphore_post(lsmWaitSem);
+    }
+}
+
+Void printData(){
+    for(;;){
+        Semaphore_pend(printSem, BIOS_WAIT_FOREVER);
         System_printf("Accel %d %d %d \n", imu.ax, imu.ay, imu.az);
         System_printf("Gyro %d %d %d \n", imu.gx, imu.gy, imu.gz);
         System_printf("Mag %d %d %d \n", imu.mx, imu.my, imu.mz);
         System_flush();
     }
-}
-
-Void printData(){
-    Semaphore_pend(gyroSem);
 }
 
 /*
@@ -99,18 +143,44 @@ Void printData(){
 
 int main(void)
 {
-    Task_Params taskParams;
+    //Task parameter objects
+    Task_Params dataGather;
+    Task_Params printerParams;
+    Task_Params lsmResetParams;
 
     /* Call board init functions */
     Board_initGeneral();
     Board_initI2C();
 
     /* Construct heartBeat Task  thread */
-    Task_Params_init(&taskParams);
-//    taskParams.arg0 = 1000000 / Clock_tickPeriod;
-    taskParams.stackSize = TASKSTACKSIZE;
-    taskParams.stack = &task0Stack;
-    Task_construct(&task0Struct, (Task_FuncPtr)heartBeatFxn, &taskParams, NULL);
+    Task_Params_init(&dataGather);
+    dataGather.stackSize = TASKSTACKSIZE;
+    dataGather.stack = &task0Stack;
+    dataGather.priority = 2;
+    Task_construct(&task0Struct, (Task_FuncPtr)heartBeatFxn, &dataGather, NULL);
+
+    //This should be pending on a semaphore
+    Task_Params_init(&printerParams);
+    printerParams.stackSize = TASKSTACKSIZE;
+    printerParams.stack = &printerStack;
+    printerParams.priority = 3;
+    Task_construct(&printerStruct, (Task_FuncPtr)printData, &printerParams, NULL);
+
+    //LSM Reset Task Setup
+    Task_Params_init(&lsmResetParams);
+    lsmResetParams.stackSize = TASKSTACKSIZE;
+    lsmResetParams.stack = &lsmResetStack;
+    lsmResetParams.priority = 1;
+    Task_construct(&lsmResetStruct, (Task_FuncPtr)resetAccel, &lsmResetParams, NULL);
+
+    //Setting up the rst pin
+    rstPinHandle = PIN_open(&rstPinState, rstPinTable);
+    if(!rstPinHandle) {
+        System_abort("Error initializing board LED pins\n");
+    }
+    //Setting the initial pin high
+    PIN_setOutputValue(rstPinHandle, Board_LSM0, 1);
+
     imu.settings.device.commInterface = IMU_MODE_I2C;
     imu.settings.device.mAddress = LSM9DS1_M;
     imu.settings.device.agAddress = LSM9DS1_AG;

@@ -3,16 +3,21 @@
 //Needed for the system functions
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
+#include <ti/sysbios/knl/Task.h>
 
 TwoWire::TwoWire()
 {
 }
 //Purpose is to get i2c initialized
-void TwoWire::begin(I2C_Handle * thing){
+void TwoWire::begin(I2C_Handle * thing, void (*rstPtr)()){
+    //Needed to pass this function pointer down to reset everything
+    resetPointer = rstPtr;
     i2c = thing;
     I2C_Params_init(&i2cParams);
     i2cParams.bitRate = I2C_400kHz;
-//    i2cParams.transferMode = I2C_MODE_BLOCKING; //We want it to block on a semaphore
+    i2cParams.transferMode = I2C_MODE_BLOCKING; //We want it to block on a semaphore
+    System_printf("Set up the params\n");
+    System_flush();
     *i2c = I2C_open(Board_I2C0, &i2cParams);
     if (*i2c == NULL) { //Kill the whole thing
         System_abort("Error Initializing I2C\n");
@@ -46,6 +51,8 @@ uint8_t TwoWire::endTransmission(bool tf){
     while(!I2C_transfer(*i2c, &i2cTransaction)){
        System_printf("THIS SHIT SUCKS\n");
        System_flush();
+       //This is the jankest thing I've ever done
+       resetPointer();
     }
    i2cTransaction.readCount = 0;
    txBufferLength = 0;

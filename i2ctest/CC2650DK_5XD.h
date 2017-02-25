@@ -85,6 +85,7 @@ extern const PIN_Config BoardGpioInitTable[];
 #define Board_UART_CTS                      PIN_UNASSIGNED
 #define Board_UART_RTS                      PIN_UNASSIGNED
 
+#define Board_LSM                           IOID_4
 /* Power Board */
 #define Board_3V3_EN                        IOID_14         /* P1.15 */
 

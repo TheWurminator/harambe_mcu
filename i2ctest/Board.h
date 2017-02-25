@@ -43,6 +43,7 @@ extern "C" {
 
 /* These #defines allow us to reuse TI-RTOS across other device families */
 #define     Board_I2C0              Board_I2C
+#define     Board_LSM0              Board_LSM
 #define     Board_UART0             Board_UART
 #define     Board_AES0              Board_AES
 #define     Board_WATCHDOG0         CC2650DK_5XD_WATCHDOG0

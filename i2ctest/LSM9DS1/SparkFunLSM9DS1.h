@@ -70,7 +70,7 @@ public:
     // begin() -- Initialize the gyro, accelerometer, and magnetometer.
     // This will set up the scale and output rate of each sensor. The values set
     // in the IMUSettings struct will take effect after calling this function.
-    uint16_t begin(I2C_Handle *);
+    uint16_t begin(I2C_Handle *, void (*f)());
 
     void calibrate(bool autoCalc = true);
     void calibrateMag(bool loadIn = true);
@@ -488,7 +488,7 @@ protected:
     ///////////////////
     // initI2C() -- Initialize the I2C hardware.
     // This function will setup all I2C pins and related hardware.
-    void initI2C(I2C_Handle *);
+    void initI2C(I2C_Handle *, void (*f)());
 
     // I2CwriteByte() -- Write a byte out of I2C to a register in the device
     // Input:
