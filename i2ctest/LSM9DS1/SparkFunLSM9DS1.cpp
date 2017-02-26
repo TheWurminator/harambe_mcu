@@ -149,7 +149,7 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 }
 
 
-uint16_t LSM9DS1::begin(I2C_Handle * thing, void (* rstPtr)())
+uint16_t LSM9DS1::begin(void (* rstPtr)())
 {
     //! Todo: don't use _xgAddress or _mAddress, duplicating memory
     _xgAddress = settings.device.agAddress;
@@ -162,7 +162,7 @@ uint16_t LSM9DS1::begin(I2C_Handle * thing, void (* rstPtr)())
     calcaRes(); // Calculate g / ADC tick, stored in aRes variable
 
     // Now, initialize our hardware interface.
-    initI2C(thing,rstPtr);  // Initialize I2C
+    initI2C(rstPtr);  // Initialize I2C
     System_printf("i2c is initialized\n");
     System_flush();
 
@@ -332,7 +332,7 @@ void LSM9DS1::initAccel()
 // is good practice.
 void LSM9DS1::calibrate(bool autoCalc)
 {
-    uint8_t data[6] = {0, 0, 0, 0, 0, 0};
+    //uint8_t data[6] = {0, 0, 0, 0, 0, 0};
     uint8_t samples = 0;
     int ii;
     int32_t aBiasRawTemp[3] = {0, 0, 0};
@@ -1073,9 +1073,9 @@ uint8_t LSM9DS1::mReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count)
 }
 
 
-void LSM9DS1::initI2C(I2C_Handle * thing, void (*rstPtr)())
+void LSM9DS1::initI2C(void (*rstPtr)())
 {
-    Wire.begin(thing, rstPtr);   // Initialize I2C library
+    Wire.begin(rstPtr);   // Initialize I2C library
 }
 
 // Wire.h read and write protocols
@@ -1094,16 +1094,16 @@ uint8_t LSM9DS1::I2CreadByte(uint8_t address, uint8_t subAddress)
     Wire.beginTransmission(address);         // Initialize the Tx buffer
     Wire.write(subAddress);                  // Put slave register address in Tx buffer
     Wire.requestFrom(address, (uint8_t) 1);  // Read one byte from slave register address
-    System_printf("Address of 0x%x\n", address );
-    System_flush();
+//    System_printf("Address of 0x%x\n", address );
+//    System_flush();
     //Moved the end transmission down here
     Wire.endTransmission();             // Send the Tx buffer, but send a restart to keep connection alive
-    System_printf("Transmission was completed\n");
-    System_flush();
+//    System_printf("Transmission was completed\n");
+//    System_flush();
     data = Wire.read();
     // Fill Rx buffer with result
-    System_printf("The val is 0x%x\n", data);
-    System_flush();
+//    System_printf("The val is 0x%x\n", data);
+//    System_flush();
     return data;                             // Return data read from slave register
 }
 

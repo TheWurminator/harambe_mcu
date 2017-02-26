@@ -16,7 +16,7 @@ BIOS_INC  = -I"C:/ti/tirex-content/tirtos_cc13xx_cc26xx_2_21_00_06/products/bios
 
 TARGET_INC = -I"C:/ti/tirex-content/tirtos_cc13xx_cc26xx_2_21_00_06/products/bios_6_46_01_37/packages/"
 
-INCS = $(BIOS_INC) $(TARGET_INC)  --include_path="C:/Users/BeetleJuice/Desktop/harambe_mcu/i2ctest/LSM9DS1" --include_path="C:/Users/BeetleJuice/Desktop/harambe_mcu/i2ctest/STN1110" --include_path="C:/Users/BeetleJuice/Desktop/harambe_mcu/i2ctest" --include_path="C:/ti/tirex-content/tirtos_cc13xx_cc26xx_2_21_00_06/products/cc26xxware_2_24_03_17272" --include_path="C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.0.LTS/include"  -IC:/ti/tirex-content/tirtos_cc13xx_cc26xx_2_21_00_06/products/bios_6_46_01_37/packages/ 
+INCS = $(BIOS_INC) $(TARGET_INC)  --include_path="C:/Users/BeetleJuice/Desktop/harambe_mcu/uartecho_CC2650DK_5XD_TI_CC2650F128" --include_path="C:/ti/tirex-content/tirtos_cc13xx_cc26xx_2_21_00_06/products/cc26xxware_2_24_03_17272" --include_path="C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.0.LTS/include" --include_path="C:/Users/BeetleJuice/Desktop/harambe_mcu/uartecho_CC2650DK_5XD_TI_CC2650F128/STN1110"  -IC:/ti/tirex-content/tirtos_cc13xx_cc26xx_2_21_00_06/products/bios_6_46_01_37/packages/ 
 
 CC = C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.0.LTS/bin/armcl -c $(CCOPTS) -I C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.0.LTS/include
 ASM = C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.0.LTS/bin/armcl -c $(CCOPTS) -I C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.0.LTS/include

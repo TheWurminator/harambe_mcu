@@ -31,9 +31,9 @@
  */
 
 /*
- *  ====================== CC2650STK.c =========================================
+ *  ====================== CC2650DK_5XD.c =============================================
  *  This file is responsible for setting up the board specific items for the
- *  CC2650 SensorTag.
+ *  SRF06EB with the CC2650EM_5XD board.
  */
 
 
@@ -74,33 +74,16 @@
 
 const PIN_Config BoardGpioInitTable[] = {
 
-    Board_STK_LED1   | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,     /* LED initially off             */
-    Board_STK_LED2   | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,     /* LED initially off             */
-    Board_KEY_LEFT   | PIN_INPUT_EN | PIN_PULLUP | PIN_IRQ_BOTHEDGES | PIN_HYSTERESIS,        /* Button is active low          */
-    Board_KEY_RIGHT  | PIN_INPUT_EN | PIN_PULLUP | PIN_IRQ_BOTHEDGES | PIN_HYSTERESIS,        /* Button is active low          */
-    Board_RELAY      | PIN_INPUT_EN | PIN_PULLDOWN | PIN_IRQ_BOTHEDGES | PIN_HYSTERESIS,      /* Relay is active high          */
-    Board_MPU_INT    | PIN_INPUT_EN | PIN_PULLDOWN | PIN_IRQ_NEGEDGE | PIN_HYSTERESIS,        /* MPU_INT is active low         */
-    Board_TMP_RDY    | PIN_INPUT_EN | PIN_PULLUP | PIN_HYSTERESIS,                            /* TMP_RDY is active high        */
-    Board_BUZZER     | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,     /* Buzzer initially off          */
-    Board_MPU_POWER  | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MAX,    /* MPU initially on              */
-    Board_MIC_POWER  | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MIN,     /* MIC initially off             */
-    Board_SPI_FLASH_CS | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,  /* External flash chip select    */
-    Board_SPI_DEVPK_CS | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MIN,   /* DevPack chip select           */
-    Board_AUDIO_DI | PIN_INPUT_EN | PIN_PULLDOWN,                                             /* Audio DI                      */
-    Board_AUDIODO | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MIN,       /* Audio data out                */
-    Board_AUDIO_CLK | PIN_INPUT_EN | PIN_PULLDOWN,                                            /* DevPack */
-    Board_DP2 | PIN_INPUT_EN | PIN_PULLDOWN,                                                  /* DevPack */
-    Board_DP1 | PIN_INPUT_EN | PIN_PULLDOWN,                                                  /* DevPack */
-    Board_DP0 | PIN_INPUT_EN | PIN_PULLDOWN,                                                  /* DevPack */
-    Board_DP3 | PIN_INPUT_EN | PIN_PULLDOWN,                                                  /* DevPack */
-    Board_UART_RX | PIN_INPUT_EN | PIN_PULLDOWN,                                              /* DevPack */
-    Board_UART_TX | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL,                        /* DevPack */
-    Board_DEVPK_ID | PIN_INPUT_EN | PIN_NOPULL,                                               /* Device pack ID - external PU  */
-    Board_SPI0_MOSI | PIN_INPUT_EN | PIN_PULLDOWN,                                            /* SPI master out - slave in */
-    Board_SPI0_MISO | PIN_INPUT_EN | PIN_PULLDOWN,                                            /* SPI master in - slave out */
-    Board_SPI0_CLK | PIN_INPUT_EN | PIN_PULLDOWN,                                             /* SPI clock */
-
-    PIN_TERMINATE
+    Board_DK_LED3    | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW   | PIN_PUSHPULL | PIN_DRVSTR_MAX,     /* LED initially off             */
+    Board_DK_LED4    | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW   | PIN_PUSHPULL | PIN_DRVSTR_MAX,     /* LED initially off             */
+    Board_KEY_SELECT | PIN_INPUT_EN  | PIN_PULLUP | PIN_HYSTERESIS,                             /* Button is active low          */
+    Board_KEY_UP     | PIN_INPUT_EN  | PIN_PULLUP | PIN_HYSTERESIS,                             /* Button is active low          */
+    Board_KEY_DOWN   | PIN_INPUT_EN  | PIN_PULLUP | PIN_HYSTERESIS,                             /* Button is active low          */
+    Board_KEY_LEFT   | PIN_INPUT_EN  | PIN_PULLUP | PIN_HYSTERESIS,                             /* Button is active low          */
+    Board_KEY_RIGHT  | PIN_INPUT_EN  | PIN_PULLUP | PIN_HYSTERESIS,                             /* Button is active low          */
+    Board_3V3_EN     | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW    | PIN_PUSHPULL,                     /* 3V3 domain off initially      */
+    Board_UART_TX    | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH   | PIN_PUSHPULL,                     /* UART TX pin at inactive level */
+    PIN_TERMINATE                                                                               /* Terminate list                */
 };
 
 const PINCC26XX_HWAttrs PINCC26XX_hwAttrs = {
@@ -110,12 +93,13 @@ const PINCC26XX_HWAttrs PINCC26XX_hwAttrs = {
 /*============================================================================*/
 
 /*
- *  ============================= Power begin ==================================
+ *  ============================= Power begin ===================================
  */
 /* Place into subsections to allow the TI linker to remove items properly */
 #if defined(__TI_COMPILER_VERSION__)
 #pragma DATA_SECTION(PowerCC26XX_config, ".const:PowerCC26XX_config")
 #endif
+
 const PowerCC26XX_Config PowerCC26XX_config = {
     .policyInitFxn      = NULL,
     .policyFxn          = &PowerCC26XX_standbyPolicy,
@@ -142,11 +126,11 @@ const PowerCC26XX_Config PowerCC26XX_config = {
 #include <ti/drivers/uart/UARTCC26XX.h>
 
 /* UART objects */
-UARTCC26XX_Object uartCC26XXObjects[CC2650STK_UARTCOUNT];
-unsigned char uartCC26XXRingBuffer[CC2650STK_UARTCOUNT][32];
+UARTCC26XX_Object uartCC26XXObjects[CC2650DK_5XD_UARTCOUNT];
+unsigned char uartCC26XXRingBuffer[CC2650DK_5XD_UARTCOUNT][32];
 
 /* UART hardware parameter structure, also used to assign UART pins */
-const UARTCC26XX_HWAttrsV2 uartCC26XXHWAttrs[CC2650STK_UARTCOUNT] = {
+const UARTCC26XX_HWAttrsV2 uartCC26XXHWAttrs[CC2650DK_5XD_UARTCOUNT] = {
     {
         .baseAddr       = UART0_BASE,
         .powerMngrId    = PowerCC26XX_PERIPH_UART0,
@@ -188,10 +172,10 @@ const UART_Config UART_config[] = {
 #include <ti/drivers/dma/UDMACC26XX.h>
 
 /* UDMA objects */
-UDMACC26XX_Object udmaObjects[CC2650STK_UDMACOUNT];
+UDMACC26XX_Object udmaObjects[CC2650DK_5XD_UDMACOUNT];
 
 /* UDMA configuration structure */
-const UDMACC26XX_HWAttrs udmaHWAttrs[CC2650STK_UDMACOUNT] = {
+const UDMACC26XX_HWAttrs udmaHWAttrs[CC2650DK_5XD_UDMACOUNT] = {
     {
         .baseAddr    = UDMA0_BASE,
         .powerMngrId = PowerCC26XX_PERIPH_UDMA,
@@ -225,10 +209,10 @@ const UDMACC26XX_Config UDMACC26XX_config[] = {
 #include <ti/drivers/spi/SPICC26XXDMA.h>
 
 /* SPI objects */
-SPICC26XXDMA_Object spiCC26XXDMAObjects[CC2650STK_SPICOUNT];
+SPICC26XXDMA_Object spiCC26XXDMAObjects[CC2650DK_5XD_SPICOUNT];
 
 /* SPI configuration structure, describing which pins are to be used */
-const SPICC26XXDMA_HWAttrsV1 spiCC26XXDMAHWAttrs[CC2650STK_SPICOUNT] = {
+const SPICC26XXDMA_HWAttrsV1 spiCC26XXDMAHWAttrs[CC2650DK_5XD_SPICOUNT] = {
     {
         .baseAddr           = SSI0_BASE,
         .intNum             = INT_SSI0_COMB,
@@ -242,20 +226,6 @@ const SPICC26XXDMA_HWAttrsV1 spiCC26XXDMAHWAttrs[CC2650STK_SPICOUNT] = {
         .misoPin            = Board_SPI0_MISO,
         .clkPin             = Board_SPI0_CLK,
         .csnPin             = Board_SPI0_CSN
-    },
-    {
-        .baseAddr           = SSI1_BASE,
-        .intNum             = INT_SSI1_COMB,
-        .intPriority        = ~0,
-        .swiPriority        = 0,
-        .powerMngrId        = PowerCC26XX_PERIPH_SSI1,
-        .defaultTxBufValue  = 0,
-        .rxChannelBitMask   = 1<<UDMA_CHAN_SSI1_RX,
-        .txChannelBitMask   = 1<<UDMA_CHAN_SSI1_TX,
-        .mosiPin            = Board_SPI1_MOSI,
-        .misoPin            = Board_SPI1_MISO,
-        .clkPin             = Board_SPI1_CLK,
-        .csnPin             = Board_SPI1_CSN
     }
 };
 
@@ -266,56 +236,10 @@ const SPI_Config SPI_config[] = {
          .object      = &spiCC26XXDMAObjects[0],
          .hwAttrs     = &spiCC26XXDMAHWAttrs[0]
     },
-    {
-         .fxnTablePtr = &SPICC26XXDMA_fxnTable,
-         .object      = &spiCC26XXDMAObjects[1],
-         .hwAttrs     = &spiCC26XXDMAHWAttrs[1]
-    },
     {NULL, NULL, NULL}
 };
 /*
  *  ========================== SPI DMA end =====================================
-*/
-
-
-/*
- *  ============================= I2C Begin=====================================
-*/
-/* Place into subsections to allow the TI linker to remove items properly */
-#if defined(__TI_COMPILER_VERSION__)
-#pragma DATA_SECTION(I2C_config, ".const:I2C_config")
-#pragma DATA_SECTION(i2cCC26xxHWAttrs, ".const:i2cCC26xxHWAttrs")
-#endif
-
-/* Include drivers */
-#include <ti/drivers/i2c/I2CCC26XX.h>
-
-/* I2C objects */
-I2CCC26XX_Object i2cCC26xxObjects[CC2650STK_I2CCOUNT];
-
-/* I2C configuration structure, describing which pins are to be used */
-const I2CCC26XX_HWAttrsV1 i2cCC26xxHWAttrs[CC2650STK_I2CCOUNT] = {
-    {
-        .baseAddr = I2C0_BASE,
-        .powerMngrId = PowerCC26XX_PERIPH_I2C0,
-        .intNum = INT_I2C_IRQ,
-        .intPriority = ~0,
-        .swiPriority = 0,
-        .sdaPin = Board_I2C0_SDA0,
-        .sclPin = Board_I2C0_SCL0,
-    }
-};
-
-const I2C_Config I2C_config[] = {
-    {
-        .fxnTablePtr = &I2CCC26XX_fxnTable,
-        .object = &i2cCC26xxObjects[0],
-        .hwAttrs = &i2cCC26xxHWAttrs[0]
-    },
-    {NULL, NULL, NULL}
-};
-/*
- *  ========================== I2C end =========================================
  */
 
 /*
@@ -333,94 +257,33 @@ const I2C_Config I2C_config[] = {
 #include <ti/drivers/crypto/CryptoCC26XX.h>
 
 /* Crypto objects */
-CryptoCC26XX_Object cryptoCC26XXObjects[CC2650STK_CRYPTOCOUNT];
+CryptoCC26XX_Object cryptoCC26XXObjects[CC2650DK_5XD_CRYPTOCOUNT];
 
 /* Crypto configuration structure, describing which pins are to be used */
-const CryptoCC26XX_HWAttrs cryptoCC26XXHWAttrs[CC2650STK_CRYPTOCOUNT] = {
+const CryptoCC26XX_HWAttrs cryptoCC26XXHWAttrs[CC2650DK_5XD_CRYPTOCOUNT] = {
     {
-        .baseAddr       = CRYPTO_BASE,
-        .powerMngrId    = PowerCC26XX_PERIPH_CRYPTO,
-        .intNum         = INT_CRYPTO_RESULT_AVAIL_IRQ,
-        .intPriority    = ~0,
+        .baseAddr    = CRYPTO_BASE,
+        .powerMngrId = PowerCC26XX_PERIPH_CRYPTO,
+        .intNum      = INT_CRYPTO_RESULT_AVAIL_IRQ,
+        .intPriority = ~0,
     }
 };
 
 /* Crypto configuration structure */
 const CryptoCC26XX_Config CryptoCC26XX_config[] = {
     {
-         .object  = &cryptoCC26XXObjects[0],
-         .hwAttrs = &cryptoCC26XXHWAttrs[0]
-    },
-    {NULL, NULL}
-};
-/*
- *  ========================== Crypto end ======================================
- */
-
-/*
- *  ============================= PDM begin ====================================
- */
-/* Place into subsections to allow the TI linker to remove items properly */
-#if defined(__TI_COMPILER_VERSION__)
-#pragma DATA_SECTION(PDMCC26XX_config, ".const:PDMCC26XX_config")
-#pragma DATA_SECTION(pdmCC26XXHWAttrs, ".const:pdmCC26XXHWAttrs")
-#pragma DATA_SECTION(pdmC26XXI2SHWAttrs, ".const:pdmC26XXI2SHWAttrs")
-#pragma DATA_SECTION(PDMCC26XX_I2S_config, ".const:PDMCC26XX_I2S_config")
-#endif
-
-/* Include drivers */
-#include <ti/drivers/pdm/PDMCC26XX.h>
-#include <ti/drivers/pdm/PDMCC26XX_util.h>
-
-/* PDM objects, one for PDM driver, one for PDM/I2S helper file */
-PDMCC26XX_Object pdmCC26XXObjects[CC2650STK_PDMCOUNT];
-PDMCC26XX_I2S_Object pdmCC26XXI2SObjects[CC2650STK_PDMCOUNT];
-
-/* PDM driver hardware attributes */
-const PDMCC26XX_HWAttrs pdmCC26XXHWAttrs[CC2650STK_PDMCOUNT] = {
-    {
-        .micPower = Board_MIC_POWER,
-        .taskPriority = 2
-    }
-};
-
-/* PDM configuration structure */
-const PDMCC26XX_Config PDMCC26XX_config[] = {
-    {
-        .object = &pdmCC26XXObjects[0],
-        .hwAttrs = &pdmCC26XXHWAttrs[0]
-    }
-};
-
-/* PDM_I2S hardware attributes */
-const PDMCC26XX_I2S_HWAttrs pdmC26XXI2SHWAttrs[CC2650STK_PDMCOUNT] = {
-    {
-        .baseAddr       = I2S0_BASE,
-        .intNum         = INT_I2S_IRQ,
-        .powerMngrId    = PowerCC26XX_PERIPH_I2S,
-        .intPriority    = ~0,
-        .mclkPin        = PIN_UNASSIGNED,
-        .bclkPin        = Board_AUDIO_CLK,
-        .wclkPin        = PIN_UNASSIGNED,
-        .ad0Pin         = Board_AUDIO_DI,
-    }
-};
-
-/* PDM_I2S configuration structure */
-const PDMCC26XX_I2S_Config PDMCC26XX_I2S_config[] = {
-    {
-        .object  = &pdmCC26XXI2SObjects[0],
-        .hwAttrs = &pdmC26XXI2SHWAttrs[0]
+        .object  = &cryptoCC26XXObjects[0],
+        .hwAttrs = &cryptoCC26XXHWAttrs[0]
     },
     { NULL, NULL }
 };
-
 /*
- *  ============================= PDM end ======================================
+ *  ========================== Crypto end =========================================
  */
 
+
 /*
- *  ========================= RF driver begin ==================================
+ *  ========================= RF driver begin ==============================================
  */
 /* Place into subsections to allow the TI linker to remove items properly */
 #if defined(__TI_COMPILER_VERSION__)
@@ -439,7 +302,7 @@ const RFCC26XX_HWAttrs RFCC26XX_hwAttrs = {
 };
 
 /*
- *  ========================== RF driver end ===================================
+ *  ========================== RF driver end =========================================
  */
 
 /*
@@ -448,12 +311,10 @@ const RFCC26XX_HWAttrs RFCC26XX_hwAttrs = {
 /* Place into subsections to allow the TI linker to remove items properly */
 #if defined(__TI_COMPILER_VERSION__)
 #pragma DATA_SECTION(Display_config, ".const:Display_config")
-#pragma DATA_SECTION(displaySharpHWattrs, ".const:displaySharpHWattrs")
 #pragma DATA_SECTION(displayUartHWAttrs, ".const:displayUartHWAttrs")
 #endif
 
 #include <ti/mw/display/Display.h>
-#include <ti/mw/display/DisplaySharp.h>
 #include <ti/mw/display/DisplayUart.h>
 
 /* Structures for UartPlain Blocking */
@@ -472,30 +333,6 @@ const DisplayUart_HWAttrs displayUartHWAttrs = {
     .strBufLen = BOARD_DISPLAY_UART_STRBUF_SIZE,
 };
 
-/* Structures for SHARP */
-DisplaySharp_Object displaySharpObject;
-
-#ifndef BOARD_DISPLAY_SHARP_SIZE
-#define BOARD_DISPLAY_SHARP_SIZE    96 // 96->96x96 is the most common board, alternative is 128->128x128.
-#endif
-static uint8_t sharpDisplayBuf[BOARD_DISPLAY_SHARP_SIZE * BOARD_DISPLAY_SHARP_SIZE / 8];
-
-const DisplaySharp_HWAttrs displaySharpHWattrs = {
-    .spiIndex    = Board_SPI0,
-    .csPin       = Board_LCD_CS,
-    .extcominPin = Board_LCD_EXTCOMIN,
-    .powerPin    = Board_LCD_POWER,
-    .enablePin   = Board_LCD_ENABLE,
-    .pixelWidth  = BOARD_DISPLAY_SHARP_SIZE,
-    .pixelHeight = BOARD_DISPLAY_SHARP_SIZE,
-    .displayBuf  = sharpDisplayBuf,
-};
-
-/* As the pins for UART and Watch Devpack conflict, prefer UART by default */
-#if !defined(BOARD_DISPLAY_EXCLUDE_UART) && !defined(BOARD_DISPLAY_EXCLUDE_LCD)
-#  define BOARD_DISPLAY_EXCLUDE_LCD
-#endif
-
 /* Array of displays */
 const Display_Config Display_config[] = {
 #if !defined(BOARD_DISPLAY_EXCLUDE_UART)
@@ -503,13 +340,6 @@ const Display_Config Display_config[] = {
         .fxnTablePtr = &DisplayUart_fxnTable,
         .object      = &displayUartObject,
         .hwAttrs     = &displayUartHWAttrs,
-    },
-#endif
-#if !defined(BOARD_DISPLAY_EXCLUDE_LCD)
-    {
-        .fxnTablePtr = &DisplaySharp_fxnTable,
-        .object      = &displaySharpObject,
-        .hwAttrs     = &displaySharpHWattrs
     },
 #endif
     { NULL, NULL, NULL } // Terminator
@@ -530,7 +360,7 @@ const Display_Config Display_config[] = {
 #endif
 
 /* GPTimer hardware attributes, one per timer part (Timer 0A, 0B, 1A, 1B..) */
-const GPTimerCC26XX_HWAttrs gptimerCC26xxHWAttrs[CC2650STK_GPTIMERPARTSCOUNT] = {
+const GPTimerCC26XX_HWAttrs gptimerCC26xxHWAttrs[CC2650DK_5XD_GPTIMERPARTSCOUNT] = {
     { .baseAddr = GPT0_BASE, .intNum = INT_GPT0A, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT0, .pinMux = GPT_PIN_0A, },
     { .baseAddr = GPT0_BASE, .intNum = INT_GPT0B, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT0, .pinMux = GPT_PIN_0B, },
     { .baseAddr = GPT1_BASE, .intNum = INT_GPT1A, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT1, .pinMux = GPT_PIN_1A, },
@@ -542,10 +372,10 @@ const GPTimerCC26XX_HWAttrs gptimerCC26xxHWAttrs[CC2650STK_GPTIMERPARTSCOUNT] = 
 };
 
 /*  GPTimer objects, one per full-width timer (A+B) (Timer 0, Timer 1..) */
-GPTimerCC26XX_Object gptimerCC26XXObjects[CC2650STK_GPTIMERCOUNT];
+GPTimerCC26XX_Object gptimerCC26XXObjects[CC2650DK_5XD_GPTIMERCOUNT];
 
 /* GPTimer configuration (used as GPTimer_Handle by driver and application) */
-const GPTimerCC26XX_Config GPTimerCC26XX_config[CC2650STK_GPTIMERPARTSCOUNT] = {
+const GPTimerCC26XX_Config GPTimerCC26XX_config[CC2650DK_5XD_GPTIMERPARTSCOUNT] = {
     { &gptimerCC26XXObjects[0], &gptimerCC26xxHWAttrs[0], GPT_A },
     { &gptimerCC26XXObjects[0], &gptimerCC26xxHWAttrs[1], GPT_B },
     { &gptimerCC26XXObjects[1], &gptimerCC26xxHWAttrs[2], GPT_A },
@@ -573,7 +403,7 @@ const GPTimerCC26XX_Config GPTimerCC26XX_config[CC2650STK_GPTIMERPARTSCOUNT] = {
 #endif
 
 /* PWM configuration, one per PWM output.   */
-PWMTimerCC26XX_HwAttrs pwmtimerCC26xxHWAttrs[CC2650STK_PWMCOUNT] = {
+PWMTimerCC26XX_HwAttrs pwmtimerCC26xxHWAttrs[CC2650DK_5XD_PWMCOUNT] = {
     { .pwmPin = Board_PWMPIN0, .gpTimerUnit = Board_GPTIMER0A },
     { .pwmPin = Board_PWMPIN1, .gpTimerUnit = Board_GPTIMER0B },
     { .pwmPin = Board_PWMPIN2, .gpTimerUnit = Board_GPTIMER1A },
@@ -585,12 +415,12 @@ PWMTimerCC26XX_HwAttrs pwmtimerCC26xxHWAttrs[CC2650STK_PWMCOUNT] = {
 };
 
 /* PWM object, one per PWM output */
-PWMTimerCC26XX_Object pwmtimerCC26xxObjects[CC2650STK_PWMCOUNT];
+PWMTimerCC26XX_Object pwmtimerCC26xxObjects[CC2650DK_5XD_PWMCOUNT];
 
 extern const PWM_FxnTable PWMTimerCC26XX_fxnTable;
 
 /* PWM configuration (used as PWM_Handle by driver and application) */
-const PWM_Config PWM_config[CC2650STK_PWMCOUNT + 1] = {
+const PWM_Config PWM_config[CC2650DK_5XD_PWMCOUNT + 1] = {
     { &PWMTimerCC26XX_fxnTable, &pwmtimerCC26xxObjects[0], &pwmtimerCC26xxHWAttrs[0] },
     { &PWMTimerCC26XX_fxnTable, &pwmtimerCC26xxObjects[1], &pwmtimerCC26xxHWAttrs[1] },
     { &PWMTimerCC26XX_fxnTable, &pwmtimerCC26xxObjects[2], &pwmtimerCC26xxHWAttrs[2] },
@@ -619,9 +449,9 @@ const PWM_Config PWM_config[CC2650STK_PWMCOUNT + 1] = {
 #include <ti/drivers/Watchdog.h>
 #include <ti/drivers/watchdog/WatchdogCC26XX.h>
 
-WatchdogCC26XX_Object watchdogCC26XXObjects[CC2650STK_WATCHDOGCOUNT];
+WatchdogCC26XX_Object watchdogCC26XXObjects[CC2650DK_5XD_WATCHDOGCOUNT];
 
-const WatchdogCC26XX_HWAttrs watchdogCC26XXHWAttrs[CC2650STK_WATCHDOGCOUNT] = {
+const WatchdogCC26XX_HWAttrs watchdogCC26XXHWAttrs[CC2650DK_5XD_WATCHDOGCOUNT] = {
     {
         .baseAddr = WDT_BASE,
         .intNum = INT_WDT_IRQ,

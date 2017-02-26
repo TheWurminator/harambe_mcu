@@ -42,8 +42,16 @@ extern "C" {
 #include "CC2650DK_5XD.h"
 
 /* These #defines allow us to reuse TI-RTOS across other device families */
-#define     Board_I2C0              Board_I2C
-#define     Board_LSM0              Board_LSM
+#define     Board_LED3              Board_DK_LED3
+#define     Board_LED4              Board_DK_LED4
+
+#define     Board_LED0              Board_DK_LED3
+#define     Board_LED1              Board_DK_LED4
+#define     Board_LED2              Board_DK_LED4
+
+#define     Board_BUTTON0           Board_KEY_UP
+#define     Board_BUTTON1           Board_KEY_DOWN
+
 #define     Board_UART0             Board_UART
 #define     Board_AES0              Board_AES
 #define     Board_WATCHDOG0         CC2650DK_5XD_WATCHDOG0
@@ -56,8 +64,9 @@ extern "C" {
 }
 
 #define     Board_initGPIO()
+#define     Board_initPWM()        PWM_init()
+#define     Board_initSPI()         SPI_init()
 #define     Board_initUART()        UART_init()
-#define     Board_initI2C()         I2C_init()
 #define     Board_initWatchdog()    Watchdog_init()
 #define     GPIO_toggle(n)
 #define     GPIO_write(n,m)

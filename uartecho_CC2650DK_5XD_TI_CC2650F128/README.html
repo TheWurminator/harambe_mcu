@@ -36,11 +36,11 @@
 </ul>
 </div>
 <h2 id="example-summary">Example Summary</h2>
-<p>Sample application to read temperature value from a TMP007 I2C temperature sensor.</p>
+<p>Example that uses the UART driver to echo back to the console. It also demonstrates System Analyzer usage via a stop-mode logger.</p>
 <h2 id="peripherals-exercised">Peripherals Exercised</h2>
 <ul>
-<li><code>Board_LED0</code> - Indicator LED</li>
-<li><code>Board_I2C_TMP</code> - I2C used to communicate with TMP007 sensor.</li>
+<li><code>Board_LED0</code> - Indicates that the board was initialized within <code>main()</code></li>
+<li><code>Board_UART0</code> - Used to echo characters from host serial session</li>
 </ul>
 <h2 id="resources-jumper-settings">Resources &amp; Jumper Settings</h2>
 <blockquote>
@@ -55,11 +55,59 @@
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">CC1350STK</td>
+<td align="left">CC2650DK</td>
 <td align="left"></td>
 </tr>
 <tr class="even">
-<td align="left">CC2650STK</td>
+<td align="left">CC2650STE-BLE</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">CC3200</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">DK-TM4C129X</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">EK-TM4C123GXL</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">EK-TM4C1294XL</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">EK-TM4C129EXL</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">MSP-EXP430F5529LP</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">MSP-EXP430FR5969</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">MSP-EXP430FR6989</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">MSP-EXP430FR5994</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">MSP-EXP432P401R</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">TMDXDOCK28M36</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">TMDXDOCKH52C1</td>
 <td align="left"></td>
 </tr>
 </tbody>
@@ -70,23 +118,42 @@
 <h2 id="example-usage">Example Usage</h2>
 <ul>
 <li><p>Run the example. <code>Board_LED0</code> turns ON to indicate TI-RTOS driver initialization is complete.</p></li>
-<li><p>The example will request temperature samples from the TMP007 and print them on the console. A total of 20 temperature samples are read/printed before the example exits. Console output should resemble:</p>
-<pre><code>    I2C Initialized!
-    Sample 0: 24 (C)
-    Sample 1: 24 (C)
-    Sample 2: 24 (C)
-    Sample 3: 24 (C)</code></pre></li>
+<li><p>When the application is running, open a serial session (e.g. <code>HyperTerminal</code>, <code>puTTY</code>, etc.) to the appropriate COM port. &gt; The COM port can be determined via Device Manager in Windows or via <code>ls /dev/tty*</code> in Linux.</p></li>
 </ul>
+<p>The connection should have the following settings</p>
+<pre><code>    Baud-rate:    9600
+    Data bits:       8
+    Stop bits:       1
+    Parity:       None
+    Flow Control: None</code></pre>
+<ul>
+<li><p>The target echoes back any character that is typed in the serial session.</p></li>
+<li><p>If the serial session is started before the target completes initialization, the following is displayed: <code>Echoing characters:</code></p></li>
+<li><p>This example also demonstrates System Analyzer in CCS. This is accomplished via stop-mode reading of the logs on the target. Halt the target and open System Analyzer as described in the TI-RTOS User Guide’s <strong>Viewing the Logs</strong>.</p></li>
+</ul>
+<p>The <strong>Live Session</strong> should have records like the following</p>
+<pre><code>   - &quot;LS_cpuLoad: 0%&quot;
+   - &quot;Wrote character 0xa&quot;</code></pre>
 <h2 id="application-design-details">Application Design Details</h2>
-<p>This application uses one tasks:</p>
-<p><code>'getTempTask'</code> - performs the following actions:</p>
-<ol style="list-style-type: decimal">
-<li><p>Opens and initializes an I2C driver object.</p></li>
-<li><p>Uses the I2C driver to get data from the TMP007 sensor.</p></li>
-<li><p>Extracts the temperature (in Celsius) and prints the value on the console.</p></li>
-<li><p>The task sleeps for 1000 system ticks.</p></li>
-<li><p>After 20 temperature samples are recovered, the I2C peripheral is closed and the example exits.</p></li>
-</ol>
+<ul>
+<li><p>This example shows how to initialize the UART driver in blocking read and write mode with no data processing and echo characters back to a console.</p></li>
+<li><p>A single task, <code>echo</code>, reads a character from <code>Board_UART0</code> and writes it back.</p></li>
+<li><p>This example uses the default StopMode logger with LoggingSetup. Log records are stored in internal buffers. They are read by System Analyzer when the target is halted. If the target is not halted and the buffers are full, the old records are over-written.</p></li>
+<li><p>To help fill up the logs, the kernel is configured to generate Log records via the following from the .cfg file <em>BIOS.logsEnabled = true;</em></p></li>
+<li><p>Additionally, the drivers instrumentation is turned on to demonstrate logging in the drivers. For this example, UART logs will show up in the <strong>Main</strong> logger. <code>TIRTOS.libType = TIRTOS.LibType_Instrumented;</code></p></li>
+</ul>
+<blockquote>
+<p>Most of the other examples do not use instrumented libraries to improve performance and minimize footprint.</p>
+</blockquote>
+<ul>
+<li>Using the UART DMA Driver</li>
+</ul>
+<p>The CC3200 and TivaC platforms have DMA support for the UART driver. For these platforms, the uartecho example can be built with either the UART driver with DMA support, or the non-DMA UART driver. The default configuration for this example is to use the non-DMA UART driver. Since only one character at a time is sent to the UART, this example is not an efficient use of the DMA, but it still serves to illustrate use of the UART DMA driver. To use the DMA version of the UART driver, build this example with the compile flag:</p>
+<p><code>--define=TI_DRIVERS_UART_DMA=1</code></p>
+<p>The <em><board>.c</em> file includes either the UART driver with DMA support or the non-DMA UART driver, based on this compile flag.</p>
+<blockquote>
+<p>For IAR users using any SensorTag(STK) Board, the XDS110 debugger must be selected with the 4-wire JTAG connection within your projects’ debugger configuration.</p>
+</blockquote>
 <h2 id="references">References</h2>
 <ul>
 <li>For GNU and IAR users, please read the following website for details about enabling <a href="http://processors.wiki.ti.com/index.php/TI-RTOS_Examples_SemiHosting">semi-hosting</a> in order to view console output.</li>

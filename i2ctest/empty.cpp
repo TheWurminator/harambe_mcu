@@ -49,8 +49,7 @@
 /* TI-RTOS Header files */
 #include <ti/drivers/I2C.h>
 #include <ti/drivers/PIN.h>
-// #include <ti/drivers/SPI.h>
-//#include <ti/drivers/UART.h>
+#include <ti/drivers/UART.h>
 // #include <ti/drivers/Watchdog.h>
 
 /* Board Header files */
@@ -58,6 +57,7 @@
 
 /*LSM9DS1 Files*/
 #include "LSM9DS1/SparkFunLSM9DS1.h"
+#include "STN1110/STN1110.h"
 
 #define TASKSTACKSIZE   512
 
@@ -82,13 +82,15 @@ PIN_Config rstPinTable[] = {
 };
 
 LSM9DS1         imu;
-I2C_Handle      i2c;
+//I2C_Handle      i2c;
 
 /*
  *  ======== heartBeatFxn ========
  *  Toggle the Board_LED0. The Task_sleep is determined by arg0 which
  *  is configured for the heartBeat Task instance.
  */
+
+//This is the function that will trigger the reset of the LSM9DS1
 void resetLSM(){
     System_printf("Resetting\n");
     System_flush();
@@ -98,18 +100,19 @@ void resetLSM(){
     System_flush();
 }
 
+//This is just a function that grabs values from the IMU
 Void heartBeatFxn(UArg arg0, UArg arg1)
 {
-    while(!imu.begin(&i2c, &resetLSM)){
-        System_printf("FUCK \n");
+    while(!imu.begin(&resetLSM)){
+        System_printf("This shouldn't happen\n");
         System_flush();
     }
 
     while(1){
         imu.readAccel();
         imu.readGyro();
-        imu.readMag();
-        Semaphore_post(printSem);
+//        imu.readMag();
+        Semaphore_post(printSem); //Printing out the values gathered from the IMU
     }
 }
 
@@ -124,12 +127,13 @@ Void resetAccel(){
     }
 }
 
+//Needs to be reworked
 Void printData(){
     for(;;){
         Semaphore_pend(printSem, BIOS_WAIT_FOREVER);
         System_printf("Accel %d %d %d \n", imu.ax, imu.ay, imu.az);
         System_printf("Gyro %d %d %d \n", imu.gx, imu.gy, imu.gz);
-        System_printf("Mag %d %d %d \n", imu.mx, imu.my, imu.mz);
+//        System_printf("Mag %d %d %d \n", imu.mx, imu.my, imu.mz);
         System_flush();
     }
 }
@@ -151,6 +155,7 @@ int main(void)
     /* Call board init functions */
     Board_initGeneral();
     Board_initI2C();
+    Board_initUART();
 
     /* Construct heartBeat Task  thread */
     Task_Params_init(&dataGather);
@@ -173,7 +178,7 @@ int main(void)
     lsmResetParams.priority = 1;
     Task_construct(&lsmResetStruct, (Task_FuncPtr)resetAccel, &lsmResetParams, NULL);
 
-    //Setting up the rst pin
+    //Setting up the rst pin for the LSM9DS1
     rstPinHandle = PIN_open(&rstPinState, rstPinTable);
     if(!rstPinHandle) {
         System_abort("Error initializing board LED pins\n");
@@ -181,15 +186,18 @@ int main(void)
     //Setting the initial pin high
     PIN_setOutputValue(rstPinHandle, Board_LSM0, 1);
 
+
+    //Setting up IMU variables
     imu.settings.device.commInterface = IMU_MODE_I2C;
     imu.settings.device.mAddress = LSM9DS1_M;
     imu.settings.device.agAddress = LSM9DS1_AG;
 
 
-    System_printf("Starting the example\nSystem provider is set to SysMin. "
-                  "Halt the target to view any SysMin contents in ROV.\n");
-    /* SysMin will only print to the console when you call flush or exit */
-    System_flush();
+//    System_printf("Starting the example\nSystem provider is set to SysMin. "
+//                  "Halt the target to view any SysMin contents in ROV.\n");
+//    /* SysMin will only print to the console when you call flush or exit */
+//
+//    System_flush();
     BIOS_start();
 
     return (0);

@@ -30,61 +30,68 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __BOARD_H
-#define __BOARD_H
+/*
+ *  ======== uartecho.c ========
+ */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/* XDCtools Header files */
+#include <xdc/std.h>
+#include <xdc/runtime/System.h>
 
-#include <ti/drivers/Power.h>
+/* BIOS Header files */
+#include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Task.h>
 
-#include "CC2650STK.h"
+/* TI-RTOS Header files */
+#include <ti/drivers/PIN.h>
+#include <ti/drivers/UART.h>
 
-/* These #defines allow us to reuse TI-RTOS across other device families */
-#define     Board_LED1              Board_STK_LED1
-#define     Board_LED2              Board_STK_LED2
-#define     Board_LED0              Board_LED2
+/* Example/Board Header files */
+#include "Board.h"
+#include "STN1110/STN1110.h"
 
-#define     Board_BUTTON0           Board_KEY_LEFT
-#define     Board_BUTTON1           Board_KEY_RIGHT
+#include <stdint.h>
 
-#define     Board_I2C0              Board_I2C
-#define     Board_I2C_TMP           Board_I2C0
-#define     Board_UART0             Board_UART
-#define     Board_AES0              Board_AES
-#define     Board_WATCHDOG0         CC2650STK_WATCHDOG0
+#define TASKSTACKSIZE     768
 
-#define     Board_initGeneral() { \
-    Power_init(); \
-    if (PIN_init(BoardGpioInitTable) != PIN_SUCCESS) \
-        {System_abort("Error with PIN_init\n"); \
-    } \
+Task_Struct task0Struct;
+Char task0Stack[TASKSTACKSIZE];
+
+STN1110 thing;
+/*
+ *  ======== echoFxn ========
+ *  Task for this function is created statically. See the project's .cfg file.
+ */
+Void echoFxn(UArg arg0, UArg arg1)
+{
+    if(thing.begin() == ELM_SUCCESS){
+        System_printf("hahahahaha\n");
+    }
 }
 
-#define     Board_initGPIO()
-#define     Board_initPWM()        PWM_init()
-#define     Board_initI2C()         I2C_init()
-#define     Board_initSPI()         SPI_init()
-#define     Board_initUART()        UART_init()
-#define     Board_initWatchdog()    Watchdog_init()
-#define     GPIO_toggle(n)
-#define     GPIO_write(n,m)
+/*
+ *  ======== main ========
+ */
+int main(void)
+{
+    Task_Params taskParams;
 
-/* Board specific I2C addresses */
+    /* Call board init functions */
+    Board_initGeneral();
+    Board_initUART();
 
-/* Interface #0 */
-#define     Board_HDC1000_ADDR      (0x43)
-#define     Board_TMP007_ADDR       (0x44)
-#define     Board_OPT3001_ADDR      (0x45)
-#define     Board_BMP280_ADDR       (0x77)
+    /* Construct BIOS objects */
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = TASKSTACKSIZE;
+    taskParams.stack = &task0Stack;
+    taskParams.priority = 2;
+    Task_construct(&task0Struct, (Task_FuncPtr)echoFxn, &taskParams, NULL);
 
-/* Interface #1 */
-#define     Board_MPU9250_ADDR      (0x68)
-#define     Board_MPU9250_MAG_ADDR  (0x0C)
+    /* SysMin will only print to the console when you call flush or exit */
+    System_flush();
 
-#ifdef __cplusplus
+    /* Start BIOS */
+    BIOS_start();
+
+    return (0);
 }
-#endif
-
-#endif /* __BOARD_H */

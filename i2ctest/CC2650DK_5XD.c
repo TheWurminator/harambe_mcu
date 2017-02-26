@@ -152,48 +152,13 @@ const UART_Config UART_config[] = {
  *  ============================= UART end =====================================
  */
 
-/*
- *  ============================= UDMA begin ===================================
- */
-/* Place into subsections to allow the TI linker to remove items properly */
-#if defined(__TI_COMPILER_VERSION__)
-#pragma DATA_SECTION(UDMACC26XX_config, ".const:UDMACC26XX_config")
-#pragma DATA_SECTION(udmaHWAttrs, ".const:udmaHWAttrs")
-#endif
-
-/* Include drivers */
-#include <ti/drivers/dma/UDMACC26XX.h>
-
-/* UDMA objects */
-UDMACC26XX_Object udmaObjects[CC2650DK_5XD_UDMACOUNT];
-
-/* UDMA configuration structure */
-const UDMACC26XX_HWAttrs udmaHWAttrs[CC2650DK_5XD_UDMACOUNT] = {
-    {
-        .baseAddr    = UDMA0_BASE,
-        .powerMngrId = PowerCC26XX_PERIPH_UDMA,
-        .intNum      = INT_DMA_ERR,
-        .intPriority = ~0
-    }
-};
-
-/* UDMA configuration structure */
-const UDMACC26XX_Config UDMACC26XX_config[] = {
-    {
-         .object  = &udmaObjects[0],
-         .hwAttrs = &udmaHWAttrs[0]
-    },
-    {NULL, NULL}
-};
-/*
- *  ============================= UDMA end =====================================
- */
-
 
 /*
  *  ========================== Crypto begin ====================================
  *  NOTE: The Crypto implementation should be considered experimental
  *        and not validated!
+ *
+ *        VERY NICE
  */
 /* Place into subsections to allow the TI linker to remove items properly */
 #if defined(__TI_COMPILER_VERSION__)
@@ -267,115 +232,6 @@ const I2C_Config I2C_config[] = {
 };
 /*
  *  ========================== I2C end =========================================
- */
-
-
-/*
- *  ========================= RF driver begin ==============================================
- */
-/* Place into subsections to allow the TI linker to remove items properly */
-#if defined(__TI_COMPILER_VERSION__)
-#pragma DATA_SECTION(RFCC26XX_hwAttrs, ".const:RFCC26XX_hwAttrs")
-#endif
-
-/* Include drivers */
-#include <ti/drivers/rf/RF.h>
-
-/* RF hwi and swi priority */
-const RFCC26XX_HWAttrs RFCC26XX_hwAttrs = {
-    .hwiCpe0Priority = ~0,
-    .hwiHwPriority   = ~0,
-    .swiCpe0Priority =  0,
-    .swiHwPriority   =  0,
-};
-
-/*
- *  ========================== RF driver end =========================================
- */
-
-/*
- *  ========================= Display begin ====================================
- */
-/* Place into subsections to allow the TI linker to remove items properly */
-#if defined(__TI_COMPILER_VERSION__)
-#pragma DATA_SECTION(Display_config, ".const:Display_config")
-#pragma DATA_SECTION(displayUartHWAttrs, ".const:displayUartHWAttrs")
-#endif
-
-#include <ti/mw/display/Display.h>
-#include <ti/mw/display/DisplayUart.h>
-
-/* Structures for UartPlain Blocking */
-DisplayUart_Object        displayUartObject;
-
-#ifndef BOARD_DISPLAY_UART_STRBUF_SIZE
-#define BOARD_DISPLAY_UART_STRBUF_SIZE    128
-#endif
-static char uartStringBuf[BOARD_DISPLAY_UART_STRBUF_SIZE];
-
-const DisplayUart_HWAttrs displayUartHWAttrs = {
-    .uartIdx      = Board_UART,
-    .baudRate     =     115200,
-    .mutexTimeout = BIOS_WAIT_FOREVER,
-    .strBuf = uartStringBuf,
-    .strBufLen = BOARD_DISPLAY_UART_STRBUF_SIZE,
-};
-
-/* Array of displays */
-const Display_Config Display_config[] = {
-#if !defined(BOARD_DISPLAY_EXCLUDE_UART)
-    {
-        .fxnTablePtr = &DisplayUart_fxnTable,
-        .object      = &displayUartObject,
-        .hwAttrs     = &displayUartHWAttrs,
-    },
-#endif
-    { NULL, NULL, NULL } // Terminator
-};
-
-/*
- *  ========================= Display end ======================================
- */
-
-/*
- *  ============================ GPTimer begin =================================
- *  Remove unused entries to reduce flash usage both in Board.c and Board.h
- */
-/* Place into subsections to allow the TI linker to remove items properly */
-#if defined(__TI_COMPILER_VERSION__)
-#pragma DATA_SECTION(GPTimerCC26XX_config, ".const:GPTimerCC26XX_config")
-#pragma DATA_SECTION(gptimerCC26xxHWAttrs, ".const:gptimerCC26xxHWAttrs")
-#endif
-
-/* GPTimer hardware attributes, one per timer part (Timer 0A, 0B, 1A, 1B..) */
-const GPTimerCC26XX_HWAttrs gptimerCC26xxHWAttrs[CC2650DK_5XD_GPTIMERPARTSCOUNT] = {
-    { .baseAddr = GPT0_BASE, .intNum = INT_GPT0A, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT0, .pinMux = GPT_PIN_0A, },
-    { .baseAddr = GPT0_BASE, .intNum = INT_GPT0B, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT0, .pinMux = GPT_PIN_0B, },
-    { .baseAddr = GPT1_BASE, .intNum = INT_GPT1A, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT1, .pinMux = GPT_PIN_1A, },
-    { .baseAddr = GPT1_BASE, .intNum = INT_GPT1B, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT1, .pinMux = GPT_PIN_1B, },
-    { .baseAddr = GPT2_BASE, .intNum = INT_GPT2A, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT2, .pinMux = GPT_PIN_2A, },
-    { .baseAddr = GPT2_BASE, .intNum = INT_GPT2B, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT2, .pinMux = GPT_PIN_2B, },
-    { .baseAddr = GPT3_BASE, .intNum = INT_GPT3A, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT3, .pinMux = GPT_PIN_3A, },
-    { .baseAddr = GPT3_BASE, .intNum = INT_GPT3B, .intPriority = (~0), .powerMngrId = PowerCC26XX_PERIPH_GPT3, .pinMux = GPT_PIN_3B, },
-};
-
-/*  GPTimer objects, one per full-width timer (A+B) (Timer 0, Timer 1..) */
-GPTimerCC26XX_Object gptimerCC26XXObjects[CC2650DK_5XD_GPTIMERCOUNT];
-
-/* GPTimer configuration (used as GPTimer_Handle by driver and application) */
-const GPTimerCC26XX_Config GPTimerCC26XX_config[CC2650DK_5XD_GPTIMERPARTSCOUNT] = {
-    { &gptimerCC26XXObjects[0], &gptimerCC26xxHWAttrs[0], GPT_A },
-    { &gptimerCC26XXObjects[0], &gptimerCC26xxHWAttrs[1], GPT_B },
-    { &gptimerCC26XXObjects[1], &gptimerCC26xxHWAttrs[2], GPT_A },
-    { &gptimerCC26XXObjects[1], &gptimerCC26xxHWAttrs[3], GPT_B },
-    { &gptimerCC26XXObjects[2], &gptimerCC26xxHWAttrs[4], GPT_A },
-    { &gptimerCC26XXObjects[2], &gptimerCC26xxHWAttrs[5], GPT_B },
-    { &gptimerCC26XXObjects[3], &gptimerCC26xxHWAttrs[6], GPT_A },
-    { &gptimerCC26XXObjects[3], &gptimerCC26xxHWAttrs[7], GPT_B },
-};
-
-/*
- *  ============================ GPTimer end ===================================
  */
 
 /*
