@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Texas Instruments Incorporated
+ * Copyright (c) 2015, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,67 +31,20 @@
  */
 
 /*
- *  ======== uartecho.c ========
+ *  ======== ccfg.c ========
+ *  Customer Configuration for CC26xx and CC13xx devices.  This file is used to
+ *  configure Boot ROM, start-up code, and SW radio behaviour.
+ *
+ *  By default, driverlib startup_files/ccfg.c settings are used.  However, if
+ *  changes are required there are two means to do so:
+ *
+ *    1.  Remove this file and copy driverlib's startup_files/ccfg.c file in
+ *        its place.  Make all changes to the file.  Changes made are local to
+ *        the project and will not affect other projects.
+ *
+ *    2.  Perform changes to driverlib startup_files/ccfg.c file.  Changes
+ *        made to this file will be applied to all projects.  This file must
+ *        remain unmodified.
  */
 
-/* XDCtools Header files */
-#include <xdc/std.h>
-#include <xdc/runtime/System.h>
-
-/* BIOS Header files */
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
-
-/* TI-RTOS Header files */
-#include <ti/drivers/PIN.h>
-#include <ti/drivers/UART.h>
-
-/* Example/Board Header files */
-#include "Board.h"
-#include "STN1110/STN1110.h"
-
-#include <stdint.h>
-
-#define TASKSTACKSIZE     768
-
-Task_Struct task0Struct;
-Char task0Stack[TASKSTACKSIZE];
-
-STN1110 thing;
-/*
- *  ======== echoFxn ========
- *  Task for this function is created statically. See the project's .cfg file.
- */
-Void echoFxn(UArg arg0, UArg arg1)
-{
-    if(thing.begin() == ELM_SUCCESS){
-        System_printf("hahahahaha\n");
-    }
-}
-
-/*
- *  ======== main ========
- */
-int main(void)
-{
-    Task_Params taskParams;
-
-    /* Call board init functions */
-    Board_initGeneral();
-    Board_initUART();
-
-    /* Construct BIOS objects */
-    Task_Params_init(&taskParams);
-    taskParams.stackSize = TASKSTACKSIZE;
-    taskParams.stack = &task0Stack;
-    taskParams.priority = 2;
-    Task_construct(&task0Struct, (Task_FuncPtr)echoFxn, &taskParams, NULL);
-
-    /* SysMin will only print to the console when you call flush or exit */
-    System_flush();
-
-    /* Start BIOS */
-    BIOS_start();
-
-    return (0);
-}
+#include <startup_files/ccfg.c>

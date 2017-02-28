@@ -26,8 +26,8 @@
 
 #include "../Board.h"
 //Initialization function for the STN
+uint8_t elmsig[] = {0xD, 0xD, 0x45, 0x4C, 0x4D, 0x33, 0x32, 0x37, 0x20, 0x76, 0x31, 0x2E, 0x33, 0x61, 0xD, 0xD, 0x3E};
 uint8_t STN1110::begin(){
-    firstTime = 1;
     UART_Params_init(&uartParams);
     uartParams.writeDataMode = UART_DATA_BINARY;
     uartParams.readDataMode = UART_DATA_BINARY;
@@ -36,12 +36,52 @@ uint8_t STN1110::begin(){
     uartParams.baudRate = 9600;
     uart = UART_open(Board_UART0, &uartParams);
     if (uart == NULL) {
+       System_printf("ijwidjwijijwdijwd\n THIS FAILED");
+       System_flush();
        return 1;
     }
+    elmCheck();
+    //This needs to check for ELM327!!!!!!!!!
+    return 88;
+//    char data[20];
+//    runCommand("ATE0", data, 20);
+//    System_printf("Ran the first command\n");
+//    System_flush();
+//    return runCommand("ATSP 0", data, 20);
+}
 
-    char data[20];
-    runCommand("AT E0", data, 20);
-    return runCommand("AT SP 0", data, 20);
+void printshit(char a){
+    System_printf("0x%x\n", a);
+    System_flush();
+}
+
+char x;
+uint8_t thing[17];
+uint8_t STN1110::elmCheck(){
+    System_printf("Inside of elmcheck\n");
+    System_flush();
+    x = 0;
+    int badflag = 0;
+    for(int i = 0; i < 17 ;i++){
+        UART_read(uart, &x, 1);
+//        UART_write(uart, &x, 1);
+        thing[i] = x;
+        if(elmsig[i] != x){
+            badflag++;
+        }
+    }
+
+    for(int i = 0; i < 17; i++){
+        System_printf("%c\n",thing[i]);
+        System_flush();
+    }
+    if(badflag){
+        System_printf("Unsuccessful");
+        System_flush();
+    }
+
+
+    return 1;
 }
 
 uint8_t STN1110::engineLoad(uint8_t &load){
@@ -319,10 +359,12 @@ uint8_t STN1110::runCommand(const char *cmd, char *data, unsigned int dataLength
     UART_write(uart, (const void *)&rt, 1);
     // Send the specified command to the controller.
     flush();
-    System_printf("%s\n", cmd);
+    System_printf("Command is: %s\n", cmd);
+    System_flush();
     UART_write(uart, cmd, strlen(cmd));
     UART_write(uart, (const void *)&rt, 1);
-
+    System_printf("Wrote the command to UART\n");
+    System_flush();
     int counter;
     bool found;
 
@@ -347,6 +389,8 @@ uint8_t STN1110::runCommand(const char *cmd, char *data, unsigned int dataLength
             ++counter;
         }
     }
+    System_printf("%s\n", data);
+    System_flush();
     // If there is still data pending to be read, raise OVERFLOW error.
     if (!found  && counter>=dataLength)
     {

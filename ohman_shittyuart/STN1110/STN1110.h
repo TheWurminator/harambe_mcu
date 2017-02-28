@@ -18,9 +18,11 @@ class STN1110
         uint8_t firstTime;
         UART_Handle uart;
         UART_Params uartParams;
+        uint8_t elmCheck();
         uint8_t begin();
         uint8_t getVoltage(float &voltage);
         uint8_t engineLoad(uint8_t &load);
+        uint8_t random;
 
         /**
          * Gets the current engine RPM.  Reads PID 0C from the OBD Interface and
