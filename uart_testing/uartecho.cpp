@@ -48,46 +48,42 @@
 
 /* Example/Board Header files */
 #include "Board.h"
+#include "STN1110/STN1110.h"
 
 #include <stdint.h>
 
-#define TASKSTACKSIZE     768
+#define TASKSTACKSIZE     1024
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
 
+STN1110 * thing;
 /*
  *  ======== echoFxn ========
  *  Task for this function is created statically. See the project's .cfg file.
  */
+
 Void echoFxn(UArg arg0, UArg arg1)
 {
-    char input = 0;
-    UART_Handle uart;
-    UART_Params uartParams;
-
-    /* Create a UART with data processing off. */
-    UART_Params_init(&uartParams);
-    uartParams.writeDataMode = UART_DATA_BINARY;
-    uartParams.readDataMode = UART_DATA_BINARY;
-    uartParams.readReturnMode = UART_RETURN_FULL;
-    uartParams.readEcho = UART_ECHO_OFF;
-    uartParams.baudRate = 9600;
-    uart = UART_open(Board_UART0, &uartParams);
-
-    /* Loop forever echoing */
-    while (1) {
-        UART_read(uart, &input, 1);
-        UART_write(uart, &input, 1);
+    STN1110 lala = STN1110();
+    thing = &lala;
+    while(lala.begin() != ELM_SUCCESS){
+        System_printf("Unsuccessful Start\n");
+        System_flush();
     }
+    System_printf("The initialization of the chip was successful\n");
+    System_flush();
+    //Getting values
+    lala.getSpeed();
+    lala.getThrottlePosition();
 }
+
 
 /*
  *  ======== main ========
  */
 int main(void)
 {
-    PIN_Handle ledPinHandle;
     Task_Params taskParams;
 
     /* Call board init functions */
@@ -98,6 +94,7 @@ int main(void)
     Task_Params_init(&taskParams);
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
+    taskParams.priority = 2;
     Task_construct(&task0Struct, (Task_FuncPtr)echoFxn, &taskParams, NULL);
 
     /* SysMin will only print to the console when you call flush or exit */
