@@ -1,0 +1,12 @@
+package.xdc
+package.xs
+package/xconfig_appBLEprintf.sch
+package/.vers_g180
+package/.vers_r170
+package/.vers_b160
+package/.xdc-B06
+package/xconfig_appBLEprintf.java
+package/xconfig_appBLEprintf.class
+package/package_xconfig_appBLEprintf.c
+package/package.defs.h
+package/xconfig_appBLEprintf.ccs

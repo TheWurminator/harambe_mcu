@@ -57,7 +57,7 @@
 #include <gapbondmgr.h>
 #include <peripheral.h>
 #include <icall_apimsg.h>
-
+#include <xdc/runtime/System.h>
 #include <devinfoservice.h>
 
 #include "util.h"
@@ -154,7 +154,7 @@ static ICall_EntityID selfEntity;
 
 // Semaphore globally used to post events to the application thread
 static ICall_Semaphore sem;
-
+int ff = 0;
 // Queue object used for application messages.
 static Queue_Struct applicationMsgQ;
 static Queue_Handle hApplicationMsgQ;
@@ -554,11 +554,15 @@ static void ProjectZero_init(void)
 static void ProjectZero_taskFxn(UArg a0, UArg a1)
 {
   // Initialize application
+   // System_printf("running0\n");
+     //    System_flush();
   ProjectZero_init();
 
   // Application main loop
   for (;;)
   {
+   //   System_printf("running1\n");
+     // System_flush();
     // Waits for a signal to the semaphore associated with the calling thread.
     // Note that the semaphore associated with a thread is signaled when a
     // message is queued to the message receive queue of the thread or when
@@ -570,23 +574,32 @@ static void ProjectZero_taskFxn(UArg a0, UArg a1)
       ICall_EntityID dest;
       ICall_ServiceEnum src;
       ICall_HciExtEvt *pMsg = NULL;
-
+      System_printf("running: %d\n", ff++);
+      System_flush();
       // Check if we got a signal because of a stack message
       if (ICall_fetchServiceMsg(&src, &dest,
                                 (void **)&pMsg) == ICALL_ERRNO_SUCCESS)
       {
+          System_printf("running 1: %d\n", ff++);
+                System_flush();
         uint8 safeToDealloc = TRUE;
 
         if ((src == ICALL_SERVICE_CLASS_BLE) && (dest == selfEntity))
         {
+            System_printf("running 2: %d\n", ff++);
+                  System_flush();
           ICall_Stack_Event *pEvt = (ICall_Stack_Event *)pMsg;
 
           // Check for event flags received (event signature 0xffff)
           if (pEvt->signature == 0xffff)
           {
+              System_printf("running 3: %d\n", ff++);
+                    System_flush();
             // Event received when a connection event is completed
             if (pEvt->event_flag & PRZ_CONN_EVT_END_EVT)
             {
+                System_printf("running 4: %d\n", ff++);
+                      System_flush();
               // Try to retransmit pending ATT Response (if any)
               ProjectZero_sendAttRsp();
             }
@@ -595,11 +608,15 @@ static void ProjectZero_taskFxn(UArg a0, UArg a1)
           {
             // Process inter-task message
             safeToDealloc = ProjectZero_processStackMsg((ICall_Hdr *)pMsg);
+            System_printf("running 5: %d\n", ff++);
+                  System_flush();
           }
         }
 
         if (pMsg && safeToDealloc)
         {
+            System_printf("running 6: %d\n", ff++);
+                  System_flush();
           ICall_freeMsg(pMsg);
         }
       }
@@ -607,6 +624,8 @@ static void ProjectZero_taskFxn(UArg a0, UArg a1)
       // Process messages sent from another task or another context.
       while (!Queue_empty(hApplicationMsgQ))
       {
+          System_printf("running 7: %d\n", ff++);
+                System_flush();
         app_msg_t *pMsg = Queue_dequeue(hApplicationMsgQ);
 
         // Process application-layer message probably sent from ourselves.
@@ -956,8 +975,11 @@ void user_DataService_ValueChangeHandler(char_data_t *pCharData)
       // Do something useful with pCharData->data here
       // -------------------------
       // Copy received data to holder array, ensuring NULL termination.
+
       memset(received_string, 0, DS_STRING_LEN);
       memcpy(received_string, pCharData->data, DS_STRING_LEN-1);
+      //System_printf("%s\n", received_string);
+        //      System_flush();
       // Needed to copy before log statement, as the holder array remains after
       // the pCharData message has been freed and reused for something else.
       Log_info3("Value Change msg: %s %s: %s",

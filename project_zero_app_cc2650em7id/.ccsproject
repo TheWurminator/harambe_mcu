@@ -7,10 +7,11 @@
 	<deviceEndianness value="little"/>
 	<codegenToolVersion value="16.9.0.LTS"/>
 	<isElfFormat value="true"/>
-	<connection value="common/targetdb/connections/TIXDS100v3_Dot7_Connection.xml"/>
+	<connection value="common/targetdb/connections/TIXDS110_Connection.xml"/>
 	<rts value="libc.a"/>
 	<createSlaveProjects value=""/>
 	<templateProperties value="id=project_zero_app_cc2650em7id.projectspec.project_zero_app_cc2650em7id,type=rtsc,products=com.ti.rtsc.TIRTOSCC13XX_CC26XX:2.20.1.08,xdcToolsVersion=3.32.00.06,target=ti.targets.arm.elf.M3,platform=ti.platforms.simplelink:CC2650F128,buildProfile=release,isHybrid=true,configuroOptions=--compileOptions &quot;${COMPILER_FLAGS} &quot; ,"/>
 	<origin value="c:\ti\simplelink_academy_01_11_00_0000\modules\projects\ble_projectzero\ccs\desktop\project_zero_app_cc2650em7id.projectspec"/>
 	<filesToOpen value="Application/project_zero.c,"/>
+	<isTargetManual value="false"/>
 </projectOptions>

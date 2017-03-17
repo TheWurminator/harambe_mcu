@@ -53,7 +53,7 @@
 #include <ti/drivers/Power.h>
 #include <ti/drivers/power/PowerCC26XX.h>
 #include <ti/sysbios/BIOS.h>
-
+#include "calculation.h"
 #include "icall.h"
 #include "hal_assert.h"
 #include "bcomdef.h"
@@ -62,11 +62,11 @@
 
 #include <ti/drivers/UART.h>
 #include <uart_logs.h>
-
+#include "uart_printf.h"
 /* Header files required to enable instruction fetch cache */
 #include <inc/hw_memmap.h>
 #include <driverlib/vims.h>
-
+#include <xdc/runtime/System.h>
 #ifndef USE_DEFAULT_USER_CFG
 
 #include "ble_user_config.h"
@@ -137,8 +137,17 @@ int main()
   /* Initialize the RTOS Log formatting and output to UART in Idle thread.
    * Note: Define xdc_runtime_Log_DISABLE_ALL to remove all impact of Log.
    * Note: NULL as Params gives 115200,8,N,1 and Blocking mode */
-  UART_init();
-  UartLog_init(UART_open(Board_UART, NULL));
+ // UART_init();
+    UART_Params uartParams;
+    UART_Params_init(&uartParams);
+    uartParams.baudRate = 115200;
+    UartPrintf_init(UART_open(Board_UART, &uartParams));
+
+   // System_printf("Hello, universe!\r\n");
+    System_printf("Starting\n");
+    System_flush();
+   // System_flush();
+  //UartLog_init(UART_open(Board_UART, NULL));
 
   /* Initialize ICall module */
   ICall_init();
@@ -148,8 +157,10 @@ int main()
 
   /* Kick off profile - Priority 3 */
   GAPRole_createTask();
-
+ // calculation_createTask();
   ProjectZero_createTask();
+  calculation_createTask();
+  //calculation_createTask();
 
   /* enable interrupts and start SYS/BIOS */
   BIOS_start();
