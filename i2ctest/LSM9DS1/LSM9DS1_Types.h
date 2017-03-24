@@ -22,7 +22,7 @@ Distributed as-is; no warranty is given.
 #define __LSM9DS1_Types_H__
 
 #include "LSM9DS1_Registers.h"
-#include "stdint.h"
+#include <stdint.h>
 // The LSM9DS1 functions over both I2C or SPI. This library supports both.
 // But the interface mode used must be sent to the LSM9DS1 constructor. Use
 // one of these two as the first parameter of the constructor.
@@ -174,7 +174,7 @@ enum fifoMode_type
     FIFO_CONT = 5
 };
 
-struct gyroSettings
+typedef struct
 {
     // Gyroscope settings:
     uint8_t enabled;
@@ -193,16 +193,16 @@ struct gyroSettings
     uint8_t enableY;
     uint8_t enableZ;
     uint8_t latchInterrupt;
-};
+} gyroSettings;
 
-struct deviceSettings
+typedef struct
 {
     uint8_t commInterface; // Can be I2C, SPI 4-wire or SPI 3-wire
     uint8_t agAddress;  // I2C address or SPI CS pin
     uint8_t mAddress;   // I2C address or SPI CS pin
-};
+} deviceSettings;
 
-struct accelSettings
+typedef struct
 {
     // Accelerometer settings:
     uint8_t enabled;
@@ -215,9 +215,9 @@ struct accelSettings
     int8_t  bandwidth;
     uint8_t highResEnable;
     uint8_t highResBandwidth;
-};
+} accelSettings;
 
-struct magSettings
+typedef struct
 {
     // Magnetometer settings:
     uint8_t enabled;
@@ -229,23 +229,21 @@ struct magSettings
     uint8_t ZPerformance;
     uint8_t lowPowerEnable;
     uint8_t operatingMode;
-};
+} magSettings;
 
-struct temperatureSettings
+typedef struct
 {
     // Temperature settings
     uint8_t enabled;
-};
+}temperatureSettings;
 
-struct IMUSettings
+typedef struct
 {
-    struct deviceSettings device;
-
-    struct gyroSettings gyro;
-    struct accelSettings accel;
-    struct magSettings mag;
-
-    struct temperatureSettings temp;
-};
+    deviceSettings device;
+    gyroSettings gyro;
+    accelSettings accel;
+    magSettings mag;
+    temperatureSettings temp;
+}IMUSettings;
 
 #endif
