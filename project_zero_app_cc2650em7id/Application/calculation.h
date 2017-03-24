@@ -32,7 +32,7 @@
 
 #ifndef CALCULATION_H
 #define CALCULATION_H
-
+#include <ti/sysbios/knl/Mailbox.h>
 #ifdef __cplusplus
 extern "C"
 {
@@ -45,10 +45,18 @@ extern "C"
 /*********************************************************************
 *  EXTERNAL VARIABLES
 */
+//static Mailbox_Handle hMyCoolMailBox; //= Mailbox_create(8,1,NULL, NULL);
+//static Mailbox_Struct myCoolMailBox;
+//hMyCoolMailBox = Mailbox_create(8,1,NULL, NULL);
 
 /*********************************************************************
  * TYPEDEFS
  */
+//typedef struct MsgObj {
+ //   Int id;             /* writer task id */
+//    Int val;            /* message value */
+//} MsgObj, *Msg;
+
 
 /*********************************************************************
  * CONSTANTS

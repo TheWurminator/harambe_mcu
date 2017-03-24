@@ -907,8 +907,6 @@ static void gapRole_taskFxn(UArg a0, UArg a1)
   // Profile main loop
   for (;;)
   {
-      System_printf("running in GAP: \n");
-            System_flush();
 #ifdef ICALL_EVENTS
     uint32_t events;
     
@@ -930,8 +928,7 @@ static void gapRole_taskFxn(UArg a0, UArg a1)
       ICall_EntityID dest;
       ICall_ServiceEnum src;
       ICall_HciExtEvt *pMsg = NULL;
-     // System_printf("running in GAP\n");
-     // System_flush();
+
       if (ICall_fetchServiceMsg(&src, &dest,
                                 (void **)&pMsg) == ICALL_ERRNO_SUCCESS)
       {
@@ -1649,8 +1646,6 @@ static void gapRole_setEvent(uint32_t event)
   events |= event;
 
   // Wake up the application thread when it waits for clock event
-  System_printf("Hi\n");
-  System_flush();
   Semaphore_post(sem);
 #endif //ICALL_EVENTS
 }

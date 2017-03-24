@@ -225,32 +225,32 @@
 		<link>
 			<name>Drivers/Display/Display.c</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/Display.c</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/mw/display/Display.c</location>
 		</link>
 		<link>
 			<name>Drivers/Display/Display.h</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/Display.h</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/mw/display/Display.h</location>
 		</link>
 		<link>
 			<name>Drivers/Display/DisplayDogm1286.c</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/DisplayDogm1286.c</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/mw/display/DisplayDogm1286.c</location>
 		</link>
 		<link>
 			<name>Drivers/Display/DisplayDogm1286.h</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/DisplayDogm1286.h</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/mw/display/DisplayDogm1286.h</location>
 		</link>
 		<link>
 			<name>Drivers/Display/DisplayUart.c</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/DisplayUart.c</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/mw/display/DisplayUart.c</location>
 		</link>
 		<link>
 			<name>Drivers/Display/DisplayUart.h</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/DisplayUart.h</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/mw/display/DisplayUart.h</location>
 		</link>
 		<link>
 			<name>Drivers/ECC/ECCROMCC26XX.c</name>
@@ -290,22 +290,22 @@
 		<link>
 			<name>Drivers/SPI/SPI.c</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/drivers/SPI.c</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/drivers/SPI.c</location>
 		</link>
 		<link>
 			<name>Drivers/SPI/SPI.h</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/drivers/SPI.h</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/drivers/SPI.h</location>
 		</link>
 		<link>
 			<name>Drivers/SPI/SPICC26XXDMA.c</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/drivers/spi/SPICC26XXDMA.c</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/drivers/spi/SPICC26XXDMA.c</location>
 		</link>
 		<link>
 			<name>Drivers/SPI/SPICC26XXDMA.h</name>
 			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/drivers/spi/SPICC26XXDMA.h</locationURI>
+			<location>c:/ti/tirtos_cc13xx_cc26xx_2_20_01_08/products/tidrivers_cc13xx_cc26xx_2_20_01_10/packages/ti/drivers/spi/SPICC26XXDMA.h</location>
 		</link>
 		<link>
 			<name>Drivers/TRNG/TRNGCC26XX.c</name>

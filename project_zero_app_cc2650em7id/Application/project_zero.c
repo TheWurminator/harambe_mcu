@@ -40,13 +40,13 @@
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Queue.h>
-
+#include <ti/sysbios/knl/Mailbox.h>
 #include <ti/drivers/PIN.h>
 #include <ti/mw/display/Display.h>
 
 #include <xdc/runtime/Log.h>
 #include <xdc/runtime/Diags.h>
-
+#include <xdc/runtime/System.h>
 // Stack headers
 #include <hci_tl.h>
 #include <gap.h>
@@ -57,20 +57,23 @@
 #include <gapbondmgr.h>
 #include <peripheral.h>
 #include <icall_apimsg.h>
-#include <xdc/runtime/System.h>
+
 #include <devinfoservice.h>
 
 #include "util.h"
 
 #include "Board.h"
 #include "project_zero.h"
-
+extern const ti_sysbios_knl_Mailbox_Handle mbx;
 // Bluetooth Developer Studio services
 #include "led_service.h"
 #include "button_service.h"
 #include "data_service.h"
 
-
+typedef struct MsgObj {
+    Int id;             /* writer task id */
+    Int val;            /* message value */
+} MsgObj, *Msg;
 /*********************************************************************
  * CONSTANTS
  */
@@ -85,12 +88,12 @@
 #define DEFAULT_PASSCODE                      000000
 
 // Task configuration
-#define PRZ_TASK_PRIORITY                     1
-
+#define PRZ_TASK_PRIORITY                     2
+#include <ti/sysbios/BIOS.h>
 #ifndef PRZ_TASK_STACK_SIZE
 #define PRZ_TASK_STACK_SIZE                   800
 #endif
-
+int ii = 0;
 // Internal Events for RTOS application
 #define PRZ_STATE_CHANGE_EVT                  0x0001
 #define PRZ_CHAR_CHANGE_EVT                   0x0002
@@ -121,6 +124,16 @@ typedef struct
 } app_msg_t;
 
 // Struct for messages about characteristic data
+/*
+typedef struct
+{
+  uint16 handle; //!< Handle of the attribute to be written (must be first field)
+  uint16 len;    //!< Length of value
+  uint8 *pValue; //!< Value of the attribute to be written (0 to ATT_MTU_SIZE-3)
+  uint8 sig;     //!< Authentication Signature status (not included (0), valid (1), invalid (2))
+  uint8 cmd;     //!< Command Flag
+} attWriteReq_t;
+*/
 typedef struct
 {
   uint16_t svcUUID; // UUID of the service
@@ -148,16 +161,17 @@ typedef struct
 /*********************************************************************
  * LOCAL VARIABLES
  */
-
 // Entity ID globally used to check for source and/or destination of messages
 static ICall_EntityID selfEntity;
 
 // Semaphore globally used to post events to the application thread
 static ICall_Semaphore sem;
-int ff = 0;
+
 // Queue object used for application messages.
 static Queue_Struct applicationMsgQ;
 static Queue_Handle hApplicationMsgQ;
+//static Mailbox_Handle hMyCoolMailBox;
+//static Mailbox_Struct myCoolMailBox;
 
 // Task configuration
 Task_Struct przTask;
@@ -233,6 +247,7 @@ static Clock_Struct button1DebounceClock;
 // State of the buttons
 static uint8_t button0State = 0;
 static uint8_t button1State = 0;
+
 
 // Global display handle
 Display_Handle dispHandle;
@@ -377,11 +392,13 @@ static void ProjectZero_init(void)
 
   // Open display. By default this is disabled via the predefined symbol Display_DISABLE_ALL.
   dispHandle = Display_open(Display_Type_LCD, NULL);
-
+ // hMyCoolMailBox = Mailbox_create(4,1,NULL, NULL);
   // Initialize queue for application messages.
   // Note: Used to transfer control to application thread from e.g. interrupts.
   Queue_construct(&applicationMsgQ, NULL);
   hApplicationMsgQ = Queue_handle(&applicationMsgQ);
+  //Mailbox_construct(&myCoolMailBox, 25, 5, NULL, NULL);
+       //hMyCoolMailBox = Mailbox_handle(&myCoolMailBox);
 
   // ******************************************************************
   // Hardware initialization
@@ -554,15 +571,16 @@ static void ProjectZero_init(void)
 static void ProjectZero_taskFxn(UArg a0, UArg a1)
 {
   // Initialize application
-   // System_printf("running0\n");
-     //    System_flush();
   ProjectZero_init();
+  Log_info0("in Project zero task function\n");
+  System_printf("in Project zero task function\n");
+  System_flush();
+  MsgObj      mailboxSuperMSG;
+  Int         mailboxSuperID;
 
   // Application main loop
   for (;;)
   {
-   //   System_printf("running1\n");
-     // System_flush();
     // Waits for a signal to the semaphore associated with the calling thread.
     // Note that the semaphore associated with a thread is signaled when a
     // message is queued to the message receive queue of the thread or when
@@ -574,32 +592,57 @@ static void ProjectZero_taskFxn(UArg a0, UArg a1)
       ICall_EntityID dest;
       ICall_ServiceEnum src;
       ICall_HciExtEvt *pMsg = NULL;
-      System_printf("running: %d\n", ff++);
+      System_printf("The value of ii is: %d\n", ii++);
       System_flush();
+       if (ii>=3){
+           for (int i=0; i<5; i++){
+
+           mailboxSuperMSG.id = 1;
+           mailboxSuperMSG.val = i;
+           System_printf("The value of mailbox is: %d\n", mailboxSuperMSG.val);
+           //System_flush();
+           int_fast16_t check = Mailbox_post(mbx, &mailboxSuperMSG,  BIOS_WAIT_FOREVER);
+           System_printf("The value of check in project zero is: %d\n", check);
+           System_printf("Did it get posted?\n");
+             System_flush();
+           //ii=0;
+     //  }
+       }
+       if (ii>=5){
+     //      uint16_t connHandle = 0x0000;
+    //       uint16_t svcUuid =DATA_SERVICE_SERV_UUID;
+    //       uint8_t paramID = 0;
+        //   uint8_t *pValue = yes;
+   //        uint16_t len = 0x0003;
+           uint8_t initString2[] = "yes";
+          System_printf("inside\n");
+          System_flush();
+
+          DataService_SetParameter(DS_STRING_ID, sizeof(initString2), initString2);
+         // user_service_ValueChangeCB(connHandle, svcUuid, paramID, pValue, len);
+
+          ii=0;
+         // continue;
+      }
+
+
+
       // Check if we got a signal because of a stack message
       if (ICall_fetchServiceMsg(&src, &dest,
                                 (void **)&pMsg) == ICALL_ERRNO_SUCCESS)
       {
-          System_printf("running 1: %d\n", ff++);
-                System_flush();
         uint8 safeToDealloc = TRUE;
 
         if ((src == ICALL_SERVICE_CLASS_BLE) && (dest == selfEntity))
         {
-            System_printf("running 2: %d\n", ff++);
-                  System_flush();
           ICall_Stack_Event *pEvt = (ICall_Stack_Event *)pMsg;
 
           // Check for event flags received (event signature 0xffff)
           if (pEvt->signature == 0xffff)
           {
-              System_printf("running 3: %d\n", ff++);
-                    System_flush();
             // Event received when a connection event is completed
             if (pEvt->event_flag & PRZ_CONN_EVT_END_EVT)
             {
-                System_printf("running 4: %d\n", ff++);
-                      System_flush();
               // Try to retransmit pending ATT Response (if any)
               ProjectZero_sendAttRsp();
             }
@@ -607,16 +650,13 @@ static void ProjectZero_taskFxn(UArg a0, UArg a1)
           else // It's a message from the stack and not an event.
           {
             // Process inter-task message
+
             safeToDealloc = ProjectZero_processStackMsg((ICall_Hdr *)pMsg);
-            System_printf("running 5: %d\n", ff++);
-                  System_flush();
           }
         }
 
         if (pMsg && safeToDealloc)
         {
-            System_printf("running 6: %d\n", ff++);
-                  System_flush();
           ICall_freeMsg(pMsg);
         }
       }
@@ -624,8 +664,8 @@ static void ProjectZero_taskFxn(UArg a0, UArg a1)
       // Process messages sent from another task or another context.
       while (!Queue_empty(hApplicationMsgQ))
       {
-          System_printf("running 7: %d\n", ff++);
-                System_flush();
+          System_printf("Hi1\n");
+            System_flush();
         app_msg_t *pMsg = Queue_dequeue(hApplicationMsgQ);
 
         // Process application-layer message probably sent from ourselves.
@@ -636,8 +676,11 @@ static void ProjectZero_taskFxn(UArg a0, UArg a1)
       }
     }
   }
-}
+ // System_printf("Done\n");
+  //  System_flush();
 
+}
+}
 
 /*
  * @brief   Handle application messages
@@ -656,7 +699,8 @@ static void ProjectZero_taskFxn(UArg a0, UArg a1)
 static void user_processApplicationMessage(app_msg_t *pMsg)
 {
   char_data_t *pCharData = (char_data_t *)pMsg->pdu;
-
+  System_printf("Hi2\n");
+    System_flush();
   switch (pMsg->type)
   {
     case APP_MSG_SERVICE_WRITE: /* Message about received value write */
@@ -737,6 +781,8 @@ static void user_processGapStateChangeEvt(gaprole_States_t newState)
 {
   switch ( newState )
   {
+//  System_printf("Hi3\n");
+  //  System_flush();
     case GAPROLE_STARTED:
       {
         uint8_t ownAddress[B_ADDR_LEN];
@@ -816,6 +862,8 @@ static void user_processGapStateChangeEvt(gaprole_States_t newState)
  */
 static void user_handleButtonPress(button_state_t *pState)
 {
+    System_printf("Hi4\n");
+      System_flush();
   Log_info2("%s %s",
     (IArg)(pState->pinId == Board_BUTTON0?"Button 0":"Button 1"),
     (IArg)(pState->state?"\x1b[32mpressed\x1b[0m":
@@ -857,8 +905,12 @@ void user_LedService_ValueChangeHandler(char_data_t *pCharData)
   Util_convertArrayToHexString(pCharData->data, pCharData->dataLen,
                                pretty_data_holder, sizeof(pretty_data_holder));
 
+  System_printf("Hi5\n");
+    System_flush();
   switch (pCharData->paramID)
   {
+ // System_printf("Hi\n");
+  //System_flush();
     case LS_LED0_ID:
       Log_info3("Value Change msg: %s %s: %s",
                 (IArg)"LED Service",
@@ -909,7 +961,8 @@ void user_ButtonService_CfgChangeHandler(char_data_t *pCharData)
   // Cast received data to uint16, as that's the format for CCCD writes.
   uint16_t configValue = *(uint16_t *)pCharData->data;
   char *configValString;
-
+  System_printf("Hi6\n");
+    System_flush();
   // Determine what to tell the user
   switch(configValue)
   {
@@ -969,17 +1022,26 @@ void user_DataService_ValueChangeHandler(char_data_t *pCharData)
   // happen in the Idle task, and so need to refer to a global/static variable.
   static uint8_t received_string[DS_STRING_LEN] = {0};
 
+  System_printf("The data in data service is: %02x\n", *pCharData);
+    System_flush();
   switch (pCharData->paramID)
   {
     case DS_STRING_ID:
+        System_printf("Changed String ID\n");
+        System_flush();
       // Do something useful with pCharData->data here
       // -------------------------
       // Copy received data to holder array, ensuring NULL termination.
-
+        System_printf("received_string: is %s\n", received_string);
+        System_printf("pCharData->data is: %s\n", pCharData->data);
+                System_flush();
       memset(received_string, 0, DS_STRING_LEN);
       memcpy(received_string, pCharData->data, DS_STRING_LEN-1);
-      //System_printf("%s\n", received_string);
-        //      System_flush();
+      System_printf("received_string: is %s\n", received_string);
+              System_printf("pCharData->data is: %s\n", pCharData->data);
+                      System_flush();
+                      DataService_SetParameter(DS_STRING_ID, sizeof(received_string), received_string);
+
       // Needed to copy before log statement, as the holder array remains after
       // the pCharData message has been freed and reused for something else.
       Log_info3("Value Change msg: %s %s: %s",
@@ -989,6 +1051,8 @@ void user_DataService_ValueChangeHandler(char_data_t *pCharData)
       break;
 
     case DS_STREAM_ID:
+        System_printf("Changed String ID\n");
+        System_flush();
       Log_info3("Value Change msg: Data Service Stream: %02x:%02x:%02x...",
                 (IArg)pCharData->data[0],
                 (IArg)pCharData->data[1],
@@ -1016,7 +1080,8 @@ void user_DataService_CfgChangeHandler(char_data_t *pCharData)
   // Cast received data to uint16, as that's the format for CCCD writes.
   uint16_t configValue = *(uint16_t *)pCharData->data;
   char *configValString;
-
+  System_printf("Hi8\n");
+    System_flush();
   // Determine what to tell the user
   switch(configValue)
   {
@@ -1061,7 +1126,8 @@ void user_DataService_CfgChangeHandler(char_data_t *pCharData)
 static uint8_t ProjectZero_processStackMsg(ICall_Hdr *pMsg)
 {
   uint8_t safeToDealloc = TRUE;
-
+  System_printf("Hi9\n");
+    System_flush();
   switch (pMsg->event)
   {
     case GATT_MSG_EVENT:
@@ -1101,6 +1167,8 @@ static uint8_t ProjectZero_processStackMsg(ICall_Hdr *pMsg)
  */
 static uint8_t ProjectZero_processGATTMsg(gattMsgEvent_t *pMsg)
 {
+    System_printf("Hi10\n");
+System_flush();
   // See if GATT server was unable to transmit an ATT response
   if (pMsg->hdr.status == blePending)
   {
@@ -1170,6 +1238,8 @@ static uint8_t ProjectZero_processGATTMsg(gattMsgEvent_t *pMsg)
  */
 static void ProjectZero_sendAttRsp(void)
 {
+    System_printf("Hi11\n");
+      System_flush();
   // See if there's a pending ATT Response to be transmitted
   if (pAttRsp != NULL)
   {
@@ -1206,7 +1276,8 @@ static void ProjectZero_sendAttRsp(void)
  * @return  none
  */
 static void ProjectZero_freeAttRsp(uint8_t status)
-{
+{System_printf("Hi12\n");
+System_flush();
   // See if there's a pending ATT response message
   if (pAttRsp != NULL)
   {
@@ -1256,6 +1327,8 @@ static void ProjectZero_freeAttRsp(uint8_t status)
  */
 static void user_gapStateChangeCB(gaprole_States_t newState)
 {
+    System_printf("Hi13\n");
+      System_flush();
   Log_info1("(CB) GAP State change: %d, Sending msg to app.", (IArg)newState);
   user_enqueueRawAppMsg( APP_MSG_GAP_STATE_CHANGE, (uint8_t *)&newState, sizeof(newState) );
 }
@@ -1273,6 +1346,8 @@ static void user_gapStateChangeCB(gaprole_States_t newState)
 static void user_gapBondMgr_passcodeCB(uint8_t *deviceAddr, uint16_t connHandle,
                                        uint8_t uiInputs, uint8_t uiOutputs, uint32 numComparison)
 {
+    System_printf("Hi11\n");
+      System_flush();
   passcode_req_t req =
   {
     .connHandle = connHandle,
@@ -1298,6 +1373,8 @@ static void user_gapBondMgr_passcodeCB(uint8_t *deviceAddr, uint16_t connHandle,
 static void user_gapBondMgr_pairStateCB(uint16_t connHandle, uint8_t state,
                                         uint8_t status)
 {
+    System_printf("Hi14\n");
+      System_flush();
   if (state == GAPBOND_PAIRING_STATE_STARTED)
   {
     Log_info0("Pairing started");
@@ -1329,9 +1406,16 @@ static void user_service_ValueChangeCB( uint16_t connHandle, uint16_t svcUuid,
                                         uint8_t paramID, uint8_t *pValue,
                                         uint16_t len )
 {
+    System_printf("Hi15\n");
+      System_flush();
   // See the service header file to compare paramID with characteristic.
   Log_info2("(CB) Characteristic value change: svc(0x%04x) paramID(%d). "
             "Sending msg to app.", (IArg)svcUuid, (IArg)paramID);
+
+  System_printf("(CB) Characteristic value change: svc(0x%04x) paramID(%d). "
+          "Sending msg to app.\n", (IArg)svcUuid, (IArg)paramID);
+  System_printf("ConnHandle: connHandle(0x%04x) pValue(%d)  len(0x%04x)", connHandle, *pValue, len);
+  System_flush();
   user_enqueueCharDataMsg(APP_MSG_SERVICE_WRITE, connHandle, svcUuid, paramID,
                           pValue, len);
 }
@@ -1343,6 +1427,8 @@ static void user_service_CfgChangeCB( uint16_t connHandle, uint16_t svcUuid,
                                       uint8_t paramID, uint8_t *pValue,
                                       uint16_t len )
 {
+    System_printf("Hi16\n");
+      System_flush();
   Log_info2("(CB) Char config change: svc(0x%04x) paramID(%d). "
             "Sending msg to app.", (IArg)svcUuid, (IArg)paramID);
   user_enqueueCharDataMsg(APP_MSG_SERVICE_CFG, connHandle, svcUuid,
@@ -1490,6 +1576,8 @@ static void user_enqueueCharDataMsg( app_msg_types_t appMsgType,
                                      uint16_t serviceUUID, uint8_t paramID,
                                      uint8_t *pValue, uint16_t len )
 {
+    System_printf("Hi17\n");
+      System_flush();
   // Called in Stack's Task context, so can't do processing here.
   // Send message to application message queue about received data.
   uint16_t readLen = len; // How much data was written to the attribute
@@ -1535,6 +1623,8 @@ static void user_enqueueRawAppMsg(app_msg_types_t appMsgType, uint8_t *pData,
                                   uint16_t len)
 {
   // Allocate memory for the message.
+    System_printf("Hi18\n");
+      System_flush();
   app_msg_t *pMsg = ICall_malloc( sizeof(app_msg_t) + len );
 
   if (pMsg != NULL)
@@ -1562,6 +1652,8 @@ static void user_enqueueRawAppMsg(app_msg_types_t appMsgType, uint8_t *pData,
  */
 static void user_updateCharVal(char_data_t *pCharData)
 {
+    System_printf("Hi19\n");
+      System_flush();
   switch(pCharData->svcUUID) {
     case LED_SERVICE_SERV_UUID:
       LedService_SetParameter(pCharData->paramID, pCharData->dataLen,

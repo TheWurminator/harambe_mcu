@@ -53,20 +53,21 @@
 #include <ti/drivers/Power.h>
 #include <ti/drivers/power/PowerCC26XX.h>
 #include <ti/sysbios/BIOS.h>
-#include "calculation.h"
+
 #include "icall.h"
 #include "hal_assert.h"
 #include "bcomdef.h"
 #include "peripheral.h"
 #include "project_zero.h"
-
+#include "calculation.h"
 #include <ti/drivers/UART.h>
 #include <uart_logs.h>
 #include "uart_printf.h"
 /* Header files required to enable instruction fetch cache */
 #include <inc/hw_memmap.h>
-#include <driverlib/vims.h>
 #include <xdc/runtime/System.h>
+#include <driverlib/vims.h>
+
 #ifndef USE_DEFAULT_USER_CFG
 
 #include "ble_user_config.h"
@@ -97,6 +98,12 @@ bleUserCfg_t user0Cfg = BLE_USER_CFG;
 /*******************************************************************************
  * GLOBAL VARIABLES
  */
+typedef struct MsgObj {
+    Int id;             /* writer task id */
+    Int val;            /* message value */
+} MsgObj, *Msg;
+
+
 
 /*******************************************************************************
  * EXTERNS
@@ -137,17 +144,15 @@ int main()
   /* Initialize the RTOS Log formatting and output to UART in Idle thread.
    * Note: Define xdc_runtime_Log_DISABLE_ALL to remove all impact of Log.
    * Note: NULL as Params gives 115200,8,N,1 and Blocking mode */
- // UART_init();
-    UART_Params uartParams;
-    UART_Params_init(&uartParams);
-    uartParams.baudRate = 115200;
-    UartPrintf_init(UART_open(Board_UART, &uartParams));
+     UART_Params uartParams;
+     UART_Params_init(&uartParams);
+     uartParams.baudRate = 115200;
+     UartPrintf_init(UART_open(Board_UART, &uartParams));
 
-   // System_printf("Hello, universe!\r\n");
-    System_printf("Starting\n");
-    System_flush();
-   // System_flush();
-  //UartLog_init(UART_open(Board_UART, NULL));
+    // System_printf("Hello, universe!\r\n");
+    // Log_info0("Starting UART");
+    // System_printf("\nStarting UART\n");
+    // System_flush();
 
   /* Initialize ICall module */
   ICall_init();
@@ -155,12 +160,22 @@ int main()
   /* Start tasks of external images - Priority 5 */
   ICall_createRemoteTasks();
 
-  /* Kick off profile - Priority 3 */
+  /* Kick off profile3 - Priority 3 */
   GAPRole_createTask();
- // calculation_createTask();
-  ProjectZero_createTask();
-  calculation_createTask();
+  //System_printf("\nBefore calc\n");
+      System_flush();
   //calculation_createTask();
+  //System_printf("\nAfter calc\n");
+        System_flush();
+       // System_printf("\nEntering project zero\n");
+               System_flush();
+ // calculation_createTask();
+   calculation_createTask();
+  ProjectZero_createTask();
+  //calculation_createTask();
+  //calculation_createTask();
+  System_printf("\nLeaving project zero\n");
+                 System_flush();
 
   /* enable interrupts and start SYS/BIOS */
   BIOS_start();
