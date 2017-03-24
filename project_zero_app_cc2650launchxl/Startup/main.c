@@ -53,6 +53,7 @@
 #include <ti/drivers/Power.h>
 #include <ti/drivers/power/PowerCC26XX.h>
 #include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Task.h>
 
 #include "icall.h"
 #include "hal_assert.h"
@@ -77,6 +78,10 @@ bleUserCfg_t user0Cfg = BLE_USER_CFG;
 #endif // USE_DEFAULT_USER_CFG
 
 #include <ti/mw/display/Display.h>
+
+#include "../stn/STN1110.h"
+
+#include <stdint.h>
 
 /*******************************************************************************
  * MACROS
@@ -121,6 +126,24 @@ extern Display_Handle dispHandle;
  *
  * @return      None.
  */
+#define TASKSTACKSIZE 1024
+#define PERIPHERALTASKPRIORITY 1
+ti_sysbios_knl_Task_Struct taskSTNStruct;
+ti_sysbios_knl_Task_Struct taskLSMStruct;
+Char taskSTNStack[TASKSTACKSIZE];
+Char taskLSMStack[TASKSTACKSIZE];
+
+
+/*External Peripheral Tasks*/
+Void STNFxn(){
+    for(;;);
+}
+
+Void LSMFxn(){
+    for(;;);
+}
+
+//Main function
 int main()
 {
   /* Register Application callback to trap asserts raised in the Stack */
@@ -138,7 +161,7 @@ int main()
    * Note: Define xdc_runtime_Log_DISABLE_ALL to remove all impact of Log.
    * Note: NULL as Params gives 115200,8,N,1 and Blocking mode */
   UART_init();
-  UartLog_init(UART_open(Board_UART, NULL));
+//  UartLog_init(UART_open(Board_UART, NULL));
 
   /* Initialize ICall module */
   ICall_init();
@@ -150,6 +173,25 @@ int main()
   GAPRole_createTask();
 
   ProjectZero_createTask();
+
+  /*Start tasks for the external peripherals*/
+  Task_Params taskParamsSTN;
+  Task_Params taskParamsLSM;
+
+  /* STN1110 Task Construction */
+  Task_Params_init(&taskParamsSTN);
+  taskParamsSTN.stackSize = TASKSTACKSIZE;
+  taskParamsSTN.stack = &taskSTNStack;
+  taskParamsSTN.priority = PERIPHERALTASKPRIORITY;
+  Task_construct(&taskSTNStruct, (Task_FuncPtr)STNFxn, &taskParamsSTN, NULL);
+
+  /*LSM Task Construction*/
+  Task_Params_init(&taskParamsLSM);
+  taskParamsLSM.stackSize = TASKSTACKSIZE;
+  taskParamsLSM.stack = &taskLSMStack;
+  taskParamsLSM.priority = PERIPHERALTASKPRIORITY;
+  Task_construct(&taskSTNStruct, (Task_FuncPtr)LSMFxn, &taskParamsLSM, NULL);
+
 
   /* enable interrupts and start SYS/BIOS */
   BIOS_start();

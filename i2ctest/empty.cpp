@@ -111,7 +111,6 @@ Void heartBeatFxn(UArg arg0, UArg arg1)
     while(1){
         imu.readAccel();
         imu.readGyro();
-//        imu.readMag();
         Semaphore_post(printSem); //Printing out the values gathered from the IMU
     }
 }
@@ -133,7 +132,6 @@ Void printData(){
         Semaphore_pend(printSem, BIOS_WAIT_FOREVER);
         System_printf("Accel %d %d %d \n", imu.ax, imu.ay, imu.az);
         System_printf("Gyro %d %d %d \n", imu.gx, imu.gy, imu.gz);
-//        System_printf("Mag %d %d %d \n", imu.mx, imu.my, imu.mz);
         System_flush();
     }
 }

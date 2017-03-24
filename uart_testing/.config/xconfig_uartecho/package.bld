@@ -11,7 +11,7 @@ var makeAssembly = false;
 var Executable = xdc.module('xdc.bld.Executable');
 
 var exeOpts = new Executable.Attrs({
-        cfgScript: 'C:/Users/BeetleJuice/Desktop/harambe_mcu/ohman_shittyuart/uartecho.cfg',
+        cfgScript: 'C:/Users/BeetleJuice/Desktop/harambe_mcu/uart_testing/uartecho.cfg',
         profile: 'release',
         cfgHome: 'xconfig_uartecho',
 });
@@ -40,8 +40,8 @@ else {
 }
 
 var thisObj = {
-    cfg:        'C:/Users/BeetleJuice/Desktop/harambe_mcu/ohman_shittyuart/uartecho.cfg',
-    outputPath: 'C:/Users/BeetleJuice/Desktop/harambe_mcu/ohman_shittyuart/.config/xconfig_uartecho',
+    cfg:        'C:/Users/BeetleJuice/Desktop/harambe_mcu/uart_testing/uartecho.cfg',
+    outputPath: 'C:/Users/BeetleJuice/Desktop/harambe_mcu/uart_testing/.config/xconfig_uartecho',
     exeName:    'uartecho' + suffix,
     exeIntName: 'uartecho' + suffix.replace('.', '_'),
     targ:       targ,

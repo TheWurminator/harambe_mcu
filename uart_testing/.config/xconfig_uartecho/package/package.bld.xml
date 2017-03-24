@@ -7,7 +7,7 @@
         <srcFile name="package/cfg/uartecho_pem3.c"/>
     </sources>
     <configscripts>
-        <srcFile name="C:/Users/BeetleJuice/Desktop/harambe_mcu/ohman_shittyuart/uartecho.cfg"/>
+        <srcFile name="C:/Users/BeetleJuice/Desktop/harambe_mcu/uart_testing/uartecho.cfg"/>
     </configscripts>
     <makefiles>
         <srcFile name="package.mak" src="package.bld"/>
@@ -44,7 +44,7 @@
         isPartial="false"
         xCfgScript="package/cfg/uartecho_pem3.cfg"
         xCfgPrefix="package/cfg/uartecho_pem3"
-        cfgScript="C:/Users/BeetleJuice/Desktop/harambe_mcu/ohman_shittyuart/uartecho.cfg"
+        cfgScript="C:/Users/BeetleJuice/Desktop/harambe_mcu/uart_testing/uartecho.cfg"
         cfgArgs="null"
         />
     </configurations>
@@ -56,7 +56,7 @@
         profile="release"
         xCfgScript="package/cfg/uartecho_pem3.cfg"
         xCfgPrefix="package/cfg/uartecho_pem3"
-        cfgScript="C:/Users/BeetleJuice/Desktop/harambe_mcu/ohman_shittyuart/uartecho.cfg"
+        cfgScript="C:/Users/BeetleJuice/Desktop/harambe_mcu/uart_testing/uartecho.cfg"
         cfgArgs="null"
         />
     </executables>

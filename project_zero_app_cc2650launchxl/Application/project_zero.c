@@ -85,7 +85,7 @@
 #define DEFAULT_PASSCODE                      000000
 
 // Task configuration
-#define PRZ_TASK_PRIORITY                     1
+#define PRZ_TASK_PRIORITY                     2
 
 #ifndef PRZ_TASK_STACK_SIZE
 #define PRZ_TASK_STACK_SIZE                   800
@@ -387,44 +387,44 @@ static void ProjectZero_init(void)
   // Hardware initialization
   // ******************************************************************
 
-  // Open LED pins
-  ledPinHandle = PIN_open(&ledPinState, ledPinTable);
-  if(!ledPinHandle) {
-    Log_error0("Error initializing board LED pins");
-    Task_exit();
-  }
+//  // Open LED pins
+//  ledPinHandle = PIN_open(&ledPinState, ledPinTable);
+//  if(!ledPinHandle) {
+//    Log_error0("Error initializing board LED pins");
+//    Task_exit();
+//  }
 
-  buttonPinHandle = PIN_open(&buttonPinState, buttonPinTable);
-  if(!buttonPinHandle) {
-    Log_error0("Error initializing button pins");
-    Task_exit();
-  }
+//  buttonPinHandle = PIN_open(&buttonPinState, buttonPinTable);
+//  if(!buttonPinHandle) {
+//    Log_error0("Error initializing button pins");
+//    Task_exit();
+//  }
 
-  // Setup callback for button pins
-  if (PIN_registerIntCb(buttonPinHandle, &buttonCallbackFxn) != 0) {
-    Log_error0("Error registering button callback function");
-    Task_exit();
-  }
+//  // Setup callback for button pins
+//  if (PIN_registerIntCb(buttonPinHandle, &buttonCallbackFxn) != 0) {
+//    Log_error0("Error registering button callback function");
+//    Task_exit();
+//  }
 
   // Create the debounce clock objects for Button 0 and Button 1
-  Clock_Params clockParams;
-  Clock_Params_init(&clockParams);
+//  Clock_Params clockParams;
+//  Clock_Params_init(&clockParams);
 
   // Both clock objects use the same callback, so differentiate on argument
-  // given to the callback in Swi context
-  clockParams.arg = Board_BUTTON0;
-
-  // Initialize to 50 ms timeout when Clock_start is called.
-  // Timeout argument is in ticks, so convert from ms to ticks via tickPeriod.
-  Clock_construct(&button0DebounceClock, buttonDebounceSwiFxn,
-                  50 * (1000/Clock_tickPeriod),
-                  &clockParams);
-
-  // Second button
-  clockParams.arg = Board_BUTTON1;
-  Clock_construct(&button1DebounceClock, buttonDebounceSwiFxn,
-                  50 * (1000/Clock_tickPeriod),
-                  &clockParams);
+//  // given to the callback in Swi context
+//  clockParams.arg = Board_BUTTON0;
+//
+//  // Initialize to 50 ms timeout when Clock_start is called.
+//  // Timeout argument is in ticks, so convert from ms to ticks via tickPeriod.
+//  Clock_construct(&button0DebounceClock, buttonDebounceSwiFxn,
+//                  50 * (1000/Clock_tickPeriod),
+//                  &clockParams);
+//
+//  // Second button
+//  clockParams.arg = Board_BUTTON1;
+//  Clock_construct(&button1DebounceClock, buttonDebounceSwiFxn,
+//                  50 * (1000/Clock_tickPeriod),
+//                  &clockParams);
 
   // ******************************************************************
   // BLE Stack initialization
@@ -494,27 +494,27 @@ static void ProjectZero_init(void)
   GGS_SetParameter(GGS_DEVICE_NAME_ATT, GAP_DEVICE_NAME_LEN, attDeviceName);
 
   // Add services to GATT server and give ID of this task for Indication acks.
-  LedService_AddService( selfEntity );
-  ButtonService_AddService( selfEntity );
+//  LedService_AddService( selfEntity );
+//  ButtonService_AddService( selfEntity );
   DataService_AddService( selfEntity );
 
   // Register callbacks with the generated services that
   // can generate events (writes received) to the application
-  LedService_RegisterAppCBs( &user_LED_ServiceCBs );
-  ButtonService_RegisterAppCBs( &user_Button_ServiceCBs );
+//  LedService_RegisterAppCBs( &user_LED_ServiceCBs );
+//  ButtonService_RegisterAppCBs( &user_Button_ServiceCBs );
   DataService_RegisterAppCBs( &user_Data_ServiceCBs );
 
   // Placeholder variable for characteristic intialization
   uint8_t initVal[40] = {0};
   uint8_t initString[] = "This is a pretty long string, isn't it!";
 
-  // Initalization of characteristics in LED_Service that can provide data.
-  LedService_SetParameter(LS_LED0_ID, LS_LED0_LEN, initVal);
-  LedService_SetParameter(LS_LED1_ID, LS_LED1_LEN, initVal);
+//  // Initalization of characteristics in LED_Service that can provide data.
+//  LedService_SetParameter(LS_LED0_ID, LS_LED0_LEN, initVal);
+//  LedService_SetParameter(LS_LED1_ID, LS_LED1_LEN, initVal);
 
   // Initalization of characteristics in Button_Service that can provide data.
-  ButtonService_SetParameter(BS_BUTTON0_ID, BS_BUTTON0_LEN, initVal);
-  ButtonService_SetParameter(BS_BUTTON1_ID, BS_BUTTON1_LEN, initVal);
+//  ButtonService_SetParameter(BS_BUTTON0_ID, BS_BUTTON0_LEN, initVal);
+//  ButtonService_SetParameter(BS_BUTTON1_ID, BS_BUTTON1_LEN, initVal);
 
   // Initalization of characteristics in Data_Service that can provide data.
   DataService_SetParameter(DS_STRING_ID, sizeof(initString), initString);

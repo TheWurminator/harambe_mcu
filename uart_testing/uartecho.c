@@ -48,7 +48,7 @@
 
 /* Example/Board Header files */
 #include "Board.h"
-#include "STN1110/STN1110.h"
+#include "stn/STN1110.h"
 
 #include <stdint.h>
 
@@ -57,7 +57,7 @@
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
 
-STN1110 * thing;
+STN1110 lala;
 /*
  *  ======== echoFxn ========
  *  Task for this function is created statically. See the project's .cfg file.
@@ -65,20 +65,45 @@ STN1110 * thing;
 
 Void echoFxn(UArg arg0, UArg arg1)
 {
-    STN1110 lala = STN1110();
-    thing = &lala;
-    while(lala.begin() != ELM_SUCCESS){
-        System_printf("Unsuccessful Start\n");
+    int x = 0;
+    label:
+    x = x+1;
+    int thing = init(&lala);
+    if(!thing){
+        System_printf("The initialization of the chip was successful\n");
         System_flush();
+        //Need to perform the check once, definitely don't need to do it every time we want data
+        volatile int ret = begin(&lala);
+        while(1){
+            while(ret != ELM_SUCCESS){ //Waiting for everything to be initialized properly
+                System_printf("Unsuccessful Start\n");
+                System_flush();
+                ret = begin(&lala);
+            }
+            //Getting speed of the vehicle
+            uint8_t speeds[5];
+            uint8_t i = 0;
+            for(i = 0; i < 5; i++){
+                uint8_t ret = getSpeed(&lala);
+                if(ret < 256){
+                    speeds[i] = getSpeed(&lala);
+                }
+                else{
+                    i--;
+                }
+            }
+            System_printf("%d, %d, %d, %d, %d\n", speeds[0], speeds[1], speeds[2], speeds[3], speeds[4]);
+            System_flush();
+            //Really need to collect the speed 5 times
+        }
     }
-    System_printf("The initialization of the chip was successful\n");
-    System_flush();
-    //Getting values
-    lala.getSpeed();
-    lala.getThrottlePosition();
+    else{
+        System_printf("UART NOT INITIALIZED PROPERLY\n");
+        System_flush();
+        goto label;
+    }
+
 }
-
-
 /*
  *  ======== main ========
  */
