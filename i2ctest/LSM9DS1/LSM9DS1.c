@@ -1,6 +1,7 @@
 #include "LSM9DS1.h"
 #include "Wire2.h"
 
+//Wire instance for the whole file
 Wire TheWire;
 
 #define SENSITIVITY_ACCELEROMETER_2  0.000061
@@ -129,8 +130,8 @@ uint16_t LSM9DS1begin(void (* rstPtr)(), LSM9DS1 * thing)
 
     // To verify communication, we can read from the WHO_AM_I register of
     // each device. Store those in a variable so we can return them.
-    uint8_t mTest = LSM9DS1mReadByte(WHO_AM_I_M);      // Read the gyro WHO_AM_I
-    uint8_t xgTest = LSM9DS1xgReadByte(WHO_AM_I_XG);   // Read the accel/mag WHO_AM_I
+    uint8_t mTest = LSM9DS1mReadByte(WHO_AM_I_M, thing);      // Read the gyro WHO_AM_I
+    uint8_t xgTest = LSM9DS1xgReadByte(WHO_AM_I_XG, thing);   // Read the accel/mag WHO_AM_I
     uint16_t whoAmICombined = (xgTest << 8) | mTest;
     if (whoAmICombined != ((WHO_AM_I_AG_RSP << 8) | WHO_AM_I_M_RSP)){
         return 0;}
@@ -255,6 +256,8 @@ void LSM9DS1I2CwriteByte(uint8_t address, uint8_t subAddress, uint8_t data, LSM9
     Wirewrite(subAddress, &TheWire);           // Put slave register address in Tx buffer
     Wirewrite(data, &TheWire);                 // Put data in Tx buffer
     WireendTransmission(0,&TheWire);           // Send the Tx buffer
+//    System_printf("Transmission completed\n");
+//    System_flush();
 }
 
 void LSM9DS1initAccel(LSM9DS1 * thing)
@@ -272,7 +275,7 @@ void LSM9DS1initAccel(LSM9DS1 * thing)
     if (thing->settings.accel.enableY) tempRegValue |= (1<<4);
     if (thing->settings.accel.enableX) tempRegValue |= (1<<3);
 
-    LSM9DS1xgWriteByte(CTRL_REG5_XL, tempRegValue);
+    LSM9DS1xgWriteByte(CTRL_REG5_XL, tempRegValue, thing);
 
     // CTRL_REG6_XL (0x20) (Default value: 0x00)
     // [ODR_XL2][ODR_XL1][ODR_XL0][FS1_XL][FS0_XL][BW_SCAL_ODR][BW_XL1][BW_XL0]
@@ -319,8 +322,9 @@ void LSM9DS1initAccel(LSM9DS1 * thing)
         tempRegValue |= (1<<7); // Set HR bit
         tempRegValue |= (thing->settings.accel.highResBandwidth & 0x3) << 5;
     }
-    LSM9DS1xgWriteByte(CTRL_REG7_XL, tempRegValue);
+    LSM9DS1xgWriteByte(CTRL_REG7_XL, tempRegValue,thing);
 }
+
 void LSM9DS1xgWriteByte(uint8_t subAddress, uint8_t data, LSM9DS1 * thing)
 {
     // Whether we're using I2C or SPI, write a byte using the
@@ -328,6 +332,16 @@ void LSM9DS1xgWriteByte(uint8_t subAddress, uint8_t data, LSM9DS1 * thing)
     LSM9DS1I2CwriteByte(thing->_xgAddress, subAddress, data, thing);
 
 }
+
+uint8_t LSM9DS1xgReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count, LSM9DS1 * thing)
+{
+    // Whether we're using I2C or SPI, read multiple bytes using the
+    // gyro-specific I2C address or SPI CS pin.
+
+    return LSM9DS1I2CreadBytes(thing->_xgAddress, subAddress, dest, count);
+
+}
+
 
 void LSM9DS1initGyro(LSM9DS1 * thing)
 {
@@ -465,12 +479,21 @@ void LSM9DS1calcaRes(LSM9DS1 * thing)
     }
 }
 
+uint8_t LSM9DS1xgReadByte(uint8_t subAddress, LSM9DS1 * thing)
+{
+    // Whether we're using I2C or SPI, read a byte using the
+    // gyro-specific I2C address or SPI CS pin.
+
+    return LSM9DS1I2CreadByte(thing->_xgAddress, subAddress, thing);
+
+}
+
 uint8_t LSM9DS1mReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count, LSM9DS1 * thing)
 {
     // Whether we're using I2C or SPI, read multiple bytes using the
     // accelerometer-specific I2C address or SPI CS pin.
 
-    return I2CreadBytes(thing->_mAddress, subAddress, dest, count, thing);
+    return LSM9DS1I2CreadBytes(thing->_mAddress, subAddress, dest, count);
 }
 
 uint8_t LSM9DS1I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count)
@@ -487,6 +510,8 @@ uint8_t LSM9DS1I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest,
 
     //Now we know that everything is being requested properly
     retVal = WireendTransmission(0, &TheWire); // Send Tx buffer, send a restart to keep connection alive
+//    System_printf("Transmission complete\n");
+//    System_flush();
     uint8_t i = 0;
     for (i=0; i<count;)
         dest[i++] = Wireread(&TheWire);
@@ -521,4 +546,68 @@ uint8_t LSM9DS1I2CreadByte(uint8_t address, uint8_t subAddress, LSM9DS1 * thing)
 //    System_printf("The val is 0x%x\n", data);
 //    System_flush();
     return data;                             // Return data read from slave register
+}
+
+void LSM9DS1readAccel(LSM9DS1 * thing)
+{
+    uint8_t temp[6]; // We'll read six bytes from the accelerometer into temp
+    if ( LSM9DS1xgReadBytes(OUT_X_L_XL, temp, 6, thing) == 6 ) // Read 6 bytes, beginning at OUT_X_L_XL
+    {
+        thing->ax = (temp[1] << 8) | temp[0]; // Store x-axis values into ax
+        thing->ay = (temp[3] << 8) | temp[2]; // Store y-axis values into ay
+        thing->az = (temp[5] << 8) | temp[4]; // Store z-axis values into az
+        if (thing->_autoCalc)
+        {
+            thing->ax -= thing->aBiasRaw[X_AXIS];
+            thing->ay -= thing->aBiasRaw[Y_AXIS];
+            thing->az -= thing->aBiasRaw[Z_AXIS];
+        }
+    }
+}
+
+void LSM9DS1readMag(LSM9DS1 * thing)
+{
+    uint8_t temp[6]; // We'll read six bytes from the mag into temp
+    if ( LSM9DS1mReadBytes(OUT_X_L_M, temp, 6, thing) == 6) // Read 6 bytes, beginning at OUT_X_L_M
+    {
+        thing->mx = (temp[1] << 8) | temp[0]; // Store x-axis values into mx
+        thing->my = (temp[3] << 8) | temp[2]; // Store y-axis values into my
+        thing->mz = (temp[5] << 8) | temp[4]; // Store z-axis values into mz
+    }
+}
+
+void LSM9DS1readGyro(LSM9DS1 * thing)
+{
+    uint8_t temp[6]; // We'll read six bytes from the gyro into temp
+    if ( LSM9DS1xgReadBytes(OUT_X_L_G, temp, 6,thing) == 6) // Read 6 bytes, beginning at OUT_X_L_G
+    {
+        thing->gx = (temp[1] << 8) | temp[0]; // Store x-axis values into gx
+        thing->gy = (temp[3] << 8) | temp[2]; // Store y-axis values into gy
+        thing->gz = (temp[5] << 8) | temp[4]; // Store z-axis values into gz
+        if (thing->_autoCalc)
+        {
+            thing->gx -= thing->gBiasRaw[X_AXIS];
+            thing->gy -= thing->gBiasRaw[Y_AXIS];
+            thing->gz -= thing->gBiasRaw[Z_AXIS];
+        }
+    }
+}
+
+
+float LSM9DS1calcGyro(int16_t gyro, LSM9DS1 * thing)
+{
+    // Return the gyro raw reading times our pre-calculated DPS / (ADC tick):
+    return thing->gRes * gyro;
+}
+
+float LSM9DS1calcAccel(int16_t accel, LSM9DS1 * thing)
+{
+    // Return the accel raw reading times our pre-calculated g's / (ADC tick):
+    return thing->aRes * accel;
+}
+
+float LSM9DS1calcMag(int16_t mag, LSM9DS1 * thing)
+{
+    // Return the mag raw reading times our pre-calculated Gs / (ADC tick):
+    return thing->mRes * mag;
 }

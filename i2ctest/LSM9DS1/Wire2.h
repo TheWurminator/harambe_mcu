@@ -34,5 +34,5 @@ void Wirebegin(void (*resetPointer)(), Wire * thing);
 void WirebeginTransmission(uint8_t address, Wire * thing);
 uint8_t Wirewrite(uint8_t something, Wire * thing);
 uint8_t WireendTransmission(uint8_t tf, Wire * thing);
-uint8_t WirerequestFrom(uint8_t, uint8_t, Wire *);
+uint8_t WirerequestFrom(uint8_t, uint8_t, Wire *thing);
 uint8_t Wireread(Wire * thing);

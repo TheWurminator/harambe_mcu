@@ -56,8 +56,7 @@
 #include "Board.h"
 
 /*LSM9DS1 Files*/
-#include "LSM9DS1/SparkFunLSM9DS1.h"
-#include "STN1110/STN1110.h"
+#include "LSM9DS1/LSM9DS1.h"
 
 #define TASKSTACKSIZE   512
 
@@ -82,7 +81,6 @@ PIN_Config rstPinTable[] = {
 };
 
 LSM9DS1         imu;
-//I2C_Handle      i2c;
 
 /*
  *  ======== heartBeatFxn ========
@@ -103,14 +101,15 @@ void resetLSM(){
 //This is just a function that grabs values from the IMU
 Void heartBeatFxn(UArg arg0, UArg arg1)
 {
-    while(!imu.begin(&resetLSM)){
+    LSM9DS1Init(&imu);
+    while(!LSM9DS1begin(&resetLSM, &imu)){
         System_printf("This shouldn't happen\n");
         System_flush();
     }
 
     while(1){
-        imu.readAccel();
-        imu.readGyro();
+        LSM9DS1readAccel(&imu);
+        LSM9DS1readGyro(&imu);
         Semaphore_post(printSem); //Printing out the values gathered from the IMU
     }
 }
@@ -119,6 +118,8 @@ Void heartBeatFxn(UArg arg0, UArg arg1)
 Void resetAccel(){
     for(;;){
         Semaphore_pend(lsmSem, BIOS_WAIT_FOREVER);
+        System_printf("We're in the resetAccel function now\n");
+        System_flush();
         PIN_setOutputValue(rstPinHandle, Board_LSM0, 0);
         Task_sleep(10000);
         PIN_setOutputValue(rstPinHandle, Board_LSM0, 1);
@@ -130,8 +131,8 @@ Void resetAccel(){
 Void printData(){
     for(;;){
         Semaphore_pend(printSem, BIOS_WAIT_FOREVER);
-        System_printf("Accel %d %d %d \n", imu.ax, imu.ay, imu.az);
-        System_printf("Gyro %d %d %d \n", imu.gx, imu.gy, imu.gz);
+        System_printf("Accel %f %f %f \n", LSM9DS1calcAccel(imu.ax, &imu), LSM9DS1calcAccel(imu.ay, &imu), LSM9DS1calcAccel(imu.az, &imu));
+        System_printf("Gyro %f %f %f \n", LSM9DS1calcGyro(imu.gx, &imu), LSM9DS1calcGyro(imu.gy, &imu), LSM9DS1calcGyro(imu.gz,&imu));
         System_flush();
     }
 }
@@ -153,7 +154,6 @@ int main(void)
     /* Call board init functions */
     Board_initGeneral();
     Board_initI2C();
-    Board_initUART();
 
     /* Construct heartBeat Task  thread */
     Task_Params_init(&dataGather);

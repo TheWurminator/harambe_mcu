@@ -49,4 +49,33 @@ typedef struct{
     uint8_t _autoCalc;
 }LSM9DS1;
 
+// Function Prototypes
+void LSM9DS1Init(LSM9DS1 * thing);
+uint16_t LSM9DS1begin(void (* rstPtr)(), LSM9DS1 * thing);
+void LSM9DS1constrainScales(LSM9DS1 * thing);
+void LSM9DS1initMag(LSM9DS1 * thing);
+void LSM9DS1mWriteByte(uint8_t subAddress, uint8_t data, LSM9DS1 * thing);
+void LSM9DS1I2CwriteByte(uint8_t address, uint8_t subAddress, uint8_t data, LSM9DS1 * thing);
+void LSM9DS1initAccel(LSM9DS1 * thing);
+void LSM9DS1xgWriteByte(uint8_t subAddress, uint8_t data, LSM9DS1 * thing);
+void LSM9DS1initGyro(LSM9DS1 * thing);
+void initI2C(void (*rstPtr)());
+void LSM9DS1calcgRes(LSM9DS1 * thing);
+void LSM9DS1calcmRes(LSM9DS1 * thing);
+void LSM9DS1calcaRes(LSM9DS1 * thing);
+uint8_t LSM9DS1xgReadByte(uint8_t subAddress, LSM9DS1 * thing);
+uint8_t LSM9DS1mReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count, LSM9DS1 * thing);
+uint8_t LSM9DS1I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count);
+uint8_t LSM9DS1mReadByte(uint8_t subAddress, LSM9DS1 * thing);
+uint8_t LSM9DS1I2CreadByte(uint8_t address, uint8_t subAddress, LSM9DS1 * thing);
+void LSM9DS1readAccel(LSM9DS1 * thing);
+void LSM9DS1readMag(LSM9DS1 * thing);
+void LSM9DS1readGyro(LSM9DS1 * thing);
+float LSM9DS1calcGyro(int16_t gyro, LSM9DS1 * thing);
+float LSM9DS1calcAccel(int16_t accel, LSM9DS1 * thing);
+float LSM9DS1calcMag(int16_t mag, LSM9DS1 * thing);
+uint8_t LSM9DS1xgReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count, LSM9DS1 * thing);
+
+
+
 #endif /* LSM9DS1_LSM9DS1_H_ */
