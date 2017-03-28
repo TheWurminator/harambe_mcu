@@ -39,7 +39,7 @@ extern "C" {
 
 #include <ti/drivers/Power.h>
 
-#include "CC2650_LAUNCHXL.h"
+#include "CC2650DK_5XD.h"
 
 /* These #defines allow us to reuse TI-RTOS across other device families */
 #define     Board_LED0              Board_RLED
@@ -52,13 +52,6 @@ extern "C" {
 #define     Board_UART0             Board_UART
 #define     Board_AES0              Board_AES
 #define     Board_WATCHDOG0         Board_WATCHDOG
-
-#define     Board_ADC0              CC2650_LAUNCHXL_ADCVSS
-#define     Board_ADC1              CC2650_LAUNCHXL_ADCVDDS
-
-#define     Board_ADCBuf0           CC2650_LAUNCHXL_ADCBuf0
-#define     Board_ADCBufChannel0    (0)
-#define     Board_ADCBufChannel1    (1)
 
 #define     Board_initGeneral() { \
     Power_init(); \

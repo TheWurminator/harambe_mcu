@@ -21,8 +21,8 @@ typedef struct{
     uint8_t random;
 }STN1110;
 
-uint8_t elmCheck(STN1110 *);
-uint8_t begin(STN1110 *);
-uint8_t init(STN1110 *);
-uint8_t getSpeed(STN1110*);
+uint8_t elmCheck(STN1110 * ha);
+uint8_t begin(STN1110 *ha );
+uint8_t init(STN1110 *ha );
+uint8_t getSpeed(STN1110 *ha);
 uint8_t transform(char x);

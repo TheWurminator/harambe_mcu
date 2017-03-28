@@ -5,7 +5,7 @@
 #include <ti/drivers/UART.h>
 #include <xdc/runtime/System.h>
 #include <ti/sysbios/knl/Clock.h>
-#include "../Board/Board.h"
+#include "../Board.h"
 
 
 //Initialization function for the STN
@@ -23,6 +23,7 @@ uint8_t init(STN1110 * val){
     uartParams.readDataMode = UART_DATA_BINARY;
     uartParams.readReturnMode = UART_RETURN_FULL;
     uartParams.readEcho = UART_ECHO_OFF;
+    uartParams.readMode = UART_MODE_BLOCKING;
     uartParams.baudRate = 9600;
     uartParams.readTimeout = Clock_tickPeriod * 10000;
     val->uart = UART_open(Board_UART0, &uartParams);
@@ -41,6 +42,8 @@ uint8_t elmCheck(STN1110 *val){
     //This will send a command to reset the STN1110
     UART_write(val->uart, &resetCommand, 3);
     UART_write(val->uart, &newline, 1);
+    System_printf("5 minutes\n");
+    System_flush();
     while(UART_read(val->uart, &x, 1)){
         if(x == 'E' || x == 'L' || x == 'M'){
             chkflg++;

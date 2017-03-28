@@ -85,7 +85,7 @@
 #define DEFAULT_PASSCODE                      000000
 
 // Task configuration
-#define PRZ_TASK_PRIORITY                     2
+#define PRZ_TASK_PRIORITY                     1
 
 #ifndef PRZ_TASK_STACK_SIZE
 #define PRZ_TASK_STACK_SIZE                   800
@@ -198,42 +198,6 @@ static gattMsgEvent_t *pAttRsp = NULL;
 static uint8_t rspTxRetry = 0;
 
 
-/* Pin driver handles */
-static PIN_Handle buttonPinHandle;
-static PIN_Handle ledPinHandle;
-
-/* Global memory storage for a PIN_Config table */
-static PIN_State buttonPinState;
-static PIN_State ledPinState;
-
-/*
- * Initial LED pin configuration table
- *   - LEDs Board_LED0 & Board_LED1 are off.
- */
-PIN_Config ledPinTable[] = {
-  Board_LED0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
-  Board_LED1 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
-  PIN_TERMINATE
-};
-
-/*
- * Application button pin configuration table:
- *   - Buttons interrupts are configured to trigger on falling edge.
- */
-PIN_Config buttonPinTable[] = {
-    Board_BUTTON0 | PIN_INPUT_EN | PIN_PULLUP | PIN_IRQ_NEGEDGE,
-    Board_BUTTON1 | PIN_INPUT_EN | PIN_PULLUP | PIN_IRQ_NEGEDGE,
-    PIN_TERMINATE
-};
-
-// Clock objects for debouncing the buttons
-static Clock_Struct button0DebounceClock;
-static Clock_Struct button1DebounceClock;
-
-// State of the buttons
-static uint8_t button0State = 0;
-static uint8_t button1State = 0;
-
 // Global display handle
 Display_Handle dispHandle;
 
@@ -259,7 +223,6 @@ static void user_gapBondMgr_passcodeCB(uint8_t *deviceAddr, uint16_t connHandle,
 static void user_gapBondMgr_pairStateCB(uint16_t connHandle, uint8_t state,
                                         uint8_t status);
 
-static void buttonDebounceSwiFxn(UArg buttonId);
 static void user_handleButtonPress(button_state_t *pState);
 
 // Generic callback handlers for value changes in services.
@@ -387,13 +350,13 @@ static void ProjectZero_init(void)
   // Hardware initialization
   // ******************************************************************
 
-//  // Open LED pins
+  // Open LED pins
 //  ledPinHandle = PIN_open(&ledPinState, ledPinTable);
 //  if(!ledPinHandle) {
 //    Log_error0("Error initializing board LED pins");
 //    Task_exit();
 //  }
-
+//
 //  buttonPinHandle = PIN_open(&buttonPinState, buttonPinTable);
 //  if(!buttonPinHandle) {
 //    Log_error0("Error initializing button pins");
@@ -405,12 +368,12 @@ static void ProjectZero_init(void)
 //    Log_error0("Error registering button callback function");
 //    Task_exit();
 //  }
-
-  // Create the debounce clock objects for Button 0 and Button 1
+//
+//  // Create the debounce clock objects for Button 0 and Button 1
 //  Clock_Params clockParams;
 //  Clock_Params_init(&clockParams);
-
-  // Both clock objects use the same callback, so differentiate on argument
+//
+//  // Both clock objects use the same callback, so differentiate on argument
 //  // given to the callback in Swi context
 //  clockParams.arg = Board_BUTTON0;
 //
@@ -507,12 +470,12 @@ static void ProjectZero_init(void)
   // Placeholder variable for characteristic intialization
   uint8_t initVal[40] = {0};
   uint8_t initString[] = "This is a pretty long string, isn't it!";
-
+//
 //  // Initalization of characteristics in LED_Service that can provide data.
 //  LedService_SetParameter(LS_LED0_ID, LS_LED0_LEN, initVal);
 //  LedService_SetParameter(LS_LED1_ID, LS_LED1_LEN, initVal);
-
-  // Initalization of characteristics in Button_Service that can provide data.
+//
+//  // Initalization of characteristics in Button_Service that can provide data.
 //  ButtonService_SetParameter(BS_BUTTON0_ID, BS_BUTTON0_LEN, initVal);
 //  ButtonService_SetParameter(BS_BUTTON1_ID, BS_BUTTON1_LEN, initVal);
 
@@ -643,9 +606,9 @@ static void user_processApplicationMessage(app_msg_t *pMsg)
     case APP_MSG_SERVICE_WRITE: /* Message about received value write */
       /* Call different handler per service */
       switch(pCharData->svcUUID) {
-        case LED_SERVICE_SERV_UUID:
-          user_LedService_ValueChangeHandler(pCharData);
-          break;
+//        case LED_SERVICE_SERV_UUID:
+//          user_LedService_ValueChangeHandler(pCharData);
+//          break;
         case DATA_SERVICE_SERV_UUID:
           user_DataService_ValueChangeHandler(pCharData);
           break;
@@ -656,9 +619,6 @@ static void user_processApplicationMessage(app_msg_t *pMsg)
     case APP_MSG_SERVICE_CFG: /* Message about received CCCD write */
       /* Call different handler per service */
       switch(pCharData->svcUUID) {
-        case BUTTON_SERVICE_SERV_UUID:
-          user_ButtonService_CfgChangeHandler(pCharData);
-          break;
         case DATA_SERVICE_SERV_UUID:
           user_DataService_CfgChangeHandler(pCharData);
           break;
@@ -684,12 +644,6 @@ static void user_processApplicationMessage(app_msg_t *pMsg)
       }
       break;
 
-    case APP_MSG_BUTTON_DEBOUNCED: /* Message from swi about pin change */
-      {
-        button_state_t *pButtonState = (button_state_t *)pMsg->pdu;
-        user_handleButtonPress(pButtonState);
-      }
-      break;
   }
 }
 
@@ -783,42 +737,6 @@ static void user_processGapStateChangeEvt(gaprole_States_t newState)
   }
 }
 
-
-/*
- * @brief   Handle a debounced button press or release in Task context.
- *          Invoked by the taskFxn based on a message received from a callback.
- *
- * @see     buttonDebounceSwiFxn
- * @see     buttonCallbackFxn
- *
- * @param   pState  pointer to button_state_t message sent from debounce Swi.
- *
- * @return  None.
- */
-static void user_handleButtonPress(button_state_t *pState)
-{
-  Log_info2("%s %s",
-    (IArg)(pState->pinId == Board_BUTTON0?"Button 0":"Button 1"),
-    (IArg)(pState->state?"\x1b[32mpressed\x1b[0m":
-                         "\x1b[33mreleased\x1b[0m"));
-
-  // Update the service with the new value.
-  // Will automatically send notification/indication if enabled.
-  switch (pState->pinId)
-  {
-    case Board_BUTTON0:
-      ButtonService_SetParameter(BS_BUTTON0_ID,
-                                 sizeof(pState->state),
-                                 &pState->state);
-      break;
-    case Board_BUTTON1:
-      ButtonService_SetParameter(BS_BUTTON1_ID,
-                                 sizeof(pState->state),
-                                 &pState->state);
-      break;
-  }
-}
-
 /*
  * @brief   Handle a write request sent from a peer device.
  *
@@ -832,104 +750,48 @@ static void user_handleButtonPress(button_state_t *pState)
  *
  * @return  None.
  */
-void user_LedService_ValueChangeHandler(char_data_t *pCharData)
-{
-  static uint8_t pretty_data_holder[16]; // 5 bytes as hex string "AA:BB:CC:DD:EE"
-  Util_convertArrayToHexString(pCharData->data, pCharData->dataLen,
-                               pretty_data_holder, sizeof(pretty_data_holder));
-
-  switch (pCharData->paramID)
-  {
-    case LS_LED0_ID:
-      Log_info3("Value Change msg: %s %s: %s",
-                (IArg)"LED Service",
-                (IArg)"LED0",
-                (IArg)pretty_data_holder);
-
-      // Do something useful with pCharData->data here
-      // -------------------------
-      // Set the output value equal to the received value. 0 is off, not 0 is on
-      PIN_setOutputValue(ledPinHandle, Board_LED0, pCharData->data[0]);
-      Log_info2("Turning %s %s",
-                (IArg)"\x1b[31mLED0\x1b[0m",
-                (IArg)(pCharData->data[0]?"on":"off"));
-      break;
-
-    case LS_LED1_ID:
-      Log_info3("Value Change msg: %s %s: %s",
-                (IArg)"LED Service",
-                (IArg)"LED1",
-                (IArg)pretty_data_holder);
-
-      // Do something useful with pCharData->data here
-      // -------------------------
-      // Set the output value equal to the received value. 0 is off, not 0 is on
-      PIN_setOutputValue(ledPinHandle, Board_LED1, pCharData->data[0]);
-      Log_info2("Turning %s %s",
-                (IArg)"\x1b[32mLED1\x1b[0m",
-                (IArg)(pCharData->data[0]?"on":"off"));
-      break;
-
-  default:
-    return;
-  }
-}
-
-
-/*
- * @brief   Handle a CCCD (configuration change) write received from a peer
- *          device. This tells us whether the peer device wants us to send
- *          Notifications or Indications.
- *
- * @param   pCharData  pointer to malloc'd char write data
- *
- * @return  None.
- */
-void user_ButtonService_CfgChangeHandler(char_data_t *pCharData)
-{
-  // Cast received data to uint16, as that's the format for CCCD writes.
-  uint16_t configValue = *(uint16_t *)pCharData->data;
-  char *configValString;
-
-  // Determine what to tell the user
-  switch(configValue)
-  {
-  case GATT_CFG_NO_OPERATION:
-    configValString = "Noti/Ind disabled";
-    break;
-  case GATT_CLIENT_CFG_NOTIFY:
-    configValString = "Notifications enabled";
-    break;
-  case GATT_CLIENT_CFG_INDICATE:
-    configValString = "Indications enabled";
-    break;
-  }
-
-  switch (pCharData->paramID)
-  {
-    case BS_BUTTON0_ID:
-      Log_info3("CCCD Change msg: %s %s: %s",
-                (IArg)"Button Service",
-                (IArg)"BUTTON0",
-                (IArg)configValString);
-      // -------------------------
-      // Do something useful with configValue here. It tells you whether someone
-      // wants to know the state of this characteristic.
-      // ...
-      break;
-
-    case BS_BUTTON1_ID:
-      Log_info3("CCCD Change msg: %s %s: %s",
-                (IArg)"Button Service",
-                (IArg)"BUTTON1",
-                (IArg)configValString);
-      // -------------------------
-      // Do something useful with configValue here. It tells you whether someone
-      // wants to know the state of this characteristic.
-      // ...
-      break;
-  }
-}
+//void user_LedService_ValueChangeHandler(char_data_t *pCharData)
+//{
+//  static uint8_t pretty_data_holder[16]; // 5 bytes as hex string "AA:BB:CC:DD:EE"
+//  Util_convertArrayToHexString(pCharData->data, pCharData->dataLen,
+//                               pretty_data_holder, sizeof(pretty_data_holder));
+//
+//  switch (pCharData->paramID)
+//  {
+//    case LS_LED0_ID:
+//      Log_info3("Value Change msg: %s %s: %s",
+//                (IArg)"LED Service",
+//                (IArg)"LED0",
+//                (IArg)pretty_data_holder);
+//
+//      // Do something useful with pCharData->data here
+//      // -------------------------
+//      // Set the output value equal to the received value. 0 is off, not 0 is on
+//      PIN_setOutputValue(ledPinHandle, Board_LED0, pCharData->data[0]);
+//      Log_info2("Turning %s %s",
+//                (IArg)"\x1b[31mLED0\x1b[0m",
+//                (IArg)(pCharData->data[0]?"on":"off"));
+//      break;
+//
+//    case LS_LED1_ID:
+//      Log_info3("Value Change msg: %s %s: %s",
+//                (IArg)"LED Service",
+//                (IArg)"LED1",
+//                (IArg)pretty_data_holder);
+//
+//      // Do something useful with pCharData->data here
+//      // -------------------------
+//      // Set the output value equal to the received value. 0 is off, not 0 is on
+//      PIN_setOutputValue(ledPinHandle, Board_LED1, pCharData->data[0]);
+//      Log_info2("Turning %s %s",
+//                (IArg)"\x1b[32mLED1\x1b[0m",
+//                (IArg)(pCharData->data[0]?"on":"off"));
+//      break;
+//
+//  default:
+//    return;
+//  }
+//}
 
 /*
  * @brief   Handle a write request sent from a peer device.
@@ -1127,9 +989,6 @@ static uint8_t ProjectZero_processGATTMsg(gattMsgEvent_t *pMsg)
   // It's safe to free the incoming message
   return (TRUE);
 }
-
-
-
 
 /*
  *  Application error handling functions
@@ -1332,110 +1191,8 @@ static void user_service_CfgChangeCB( uint16_t connHandle, uint16_t svcUuid,
  *****************************************************************************/
 
 /*
- * @brief  Callback from Clock module on timeout
- *
- *         Determines new state after debouncing
- *
- * @param  buttonId    The pin being debounced
- */
-static void buttonDebounceSwiFxn(UArg buttonId)
-{
-  // Used to send message to app
-  button_state_t buttonMsg = { .pinId = buttonId };
-  uint8_t        sendMsg   = FALSE;
-
-  // Get current value of the button pin after the clock timeout
-  uint8_t buttonPinVal = PIN_getInputValue(buttonId);
-
-  // Set interrupt direction to opposite of debounced state
-  // If button is now released (button is active low, so release is high)
-  if (buttonPinVal)
-  {
-    // Enable negative edge interrupts to wait for press
-    PIN_setConfig(buttonPinHandle, PIN_BM_IRQ, buttonId | PIN_IRQ_NEGEDGE);
-  }
-  else
-  {
-    // Enable positive edge interrupts to wait for relesae
-    PIN_setConfig(buttonPinHandle, PIN_BM_IRQ, buttonId | PIN_IRQ_POSEDGE);
-  }
-
-  switch(buttonId)
-  {
-    case Board_BUTTON0:
-      // If button is now released (buttonPinVal is active low, so release is 1)
-      // and button state was pressed (buttonstate is active high so press is 1)
-      if (buttonPinVal && button0State)
-      {
-        // Button was released
-        buttonMsg.state = button0State = 0;
-        sendMsg = TRUE;
-      }
-      else if (!buttonPinVal && !button0State)
-      {
-        // Button was pressed
-        buttonMsg.state = button0State = 1;
-        sendMsg = TRUE;
-      }
-      break;
-
-    case Board_BUTTON1:
-      // If button is now released (buttonPinVal is active low, so release is 1)
-      // and button state was pressed (buttonstate is active high so press is 1)
-      if (buttonPinVal && button1State)
-      {
-        // Button was released
-        buttonMsg.state = button1State = 0;
-        sendMsg = TRUE;
-      }
-      else if (!buttonPinVal && !button1State)
-      {
-        // Button was pressed
-        buttonMsg.state = button1State = 1;
-        sendMsg = TRUE;
-      }
-      break;
-  }
-
-  if (sendMsg == TRUE)
-  {
-    user_enqueueRawAppMsg(APP_MSG_BUTTON_DEBOUNCED,
-                      (uint8_t *)&buttonMsg, sizeof(buttonMsg));
-  }
-}
-
-/*
  *  Callbacks from Hwi-context
  *****************************************************************************/
-
-/*
- * @brief  Callback from PIN driver on interrupt
- *
- *         Sets in motion the debouncing.
- *
- * @param  handle    The PIN_Handle instance this is about
- * @param  pinId     The pin that generated the interrupt
- */
-static void buttonCallbackFxn(PIN_Handle handle, PIN_Id pinId)
-{
-  Log_info1("Button interrupt: %s",
-            (IArg)((pinId == Board_BUTTON0)?"Button 0":"Button 1"));
-
-  // Disable interrupt on that pin for now. Re-enabled after debounce.
-  PIN_setConfig(handle, PIN_BM_IRQ, pinId | PIN_IRQ_DIS);
-
-  // Start debounce timer
-  switch (pinId)
-  {
-    case Board_BUTTON0:
-      Clock_start(Clock_handle(&button0DebounceClock));
-      break;
-    case Board_BUTTON1:
-      Clock_start(Clock_handle(&button1DebounceClock));
-      break;
-  }
-}
-
 
 /******************************************************************************
  *****************************************************************************
