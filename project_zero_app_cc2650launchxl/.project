@@ -63,11 +63,6 @@
 			<locationURI>TI_BLE_SDK_BASE/src/common/cc26xx/util.h</locationURI>
 		</link>
 		<link>
-			<name>Drivers/Display</name>
-			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
-		</link>
-		<link>
 			<name>Drivers/ECC</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
@@ -79,11 +74,6 @@
 		</link>
 		<link>
 			<name>Drivers/RF</name>
-			<type>2</type>
-			<locationURI>virtual:/virtual</locationURI>
-		</link>
-		<link>
-			<name>Drivers/SPI</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
@@ -173,11 +163,6 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>PROFILES/ext_flash_layout.h</name>
-			<type>1</type>
-			<locationURI>TI_BLE_SDK_BASE/src/common/cc26xx/ext_flash_layout.h</locationURI>
-		</link>
-		<link>
 			<name>PROFILES/gatt_profile_uuid.h</name>
 			<type>1</type>
 			<locationURI>TI_BLE_SDK_BASE/src/inc/gatt_profile_uuid.h</locationURI>
@@ -223,36 +208,6 @@
 			<location>c:/ti/simplelink_academy_01_11_00_0000/modules/projects/support_files/Components/uart_log/uart_logs.c</location>
 		</link>
 		<link>
-			<name>Drivers/Display/Display.c</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/Display.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/Display/Display.h</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/Display.h</locationURI>
-		</link>
-		<link>
-			<name>Drivers/Display/DisplayDogm1286.c</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/DisplayDogm1286.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/Display/DisplayDogm1286.h</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/DisplayDogm1286.h</locationURI>
-		</link>
-		<link>
-			<name>Drivers/Display/DisplayUart.c</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/DisplayUart.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/Display/DisplayUart.h</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/mw/display/DisplayUart.h</locationURI>
-		</link>
-		<link>
 			<name>Drivers/ECC/ECCROMCC26XX.c</name>
 			<type>1</type>
 			<locationURI>TI_BLE_SDK_BASE/src/common/cc26xx/ecc/ECCROMCC26XX.c</locationURI>
@@ -286,26 +241,6 @@
 			<name>Drivers/RF/RFCC26XX_singleMode.c</name>
 			<type>1</type>
 			<locationURI>TI_RTOS_DRIVERS_BASE/ti/drivers/rf/RFCC26XX_singleMode.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/SPI/SPI.c</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/drivers/SPI.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/SPI/SPI.h</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/drivers/SPI.h</locationURI>
-		</link>
-		<link>
-			<name>Drivers/SPI/SPICC26XXDMA.c</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/drivers/spi/SPICC26XXDMA.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/SPI/SPICC26XXDMA.h</name>
-			<type>1</type>
-			<locationURI>TI_RTOS_DRIVERS_BASE/ti/drivers/spi/SPICC26XXDMA.h</locationURI>
 		</link>
 		<link>
 			<name>Drivers/TRNG/TRNGCC26XX.c</name>

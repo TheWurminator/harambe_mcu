@@ -66,6 +66,7 @@ extern "C"
  * Task creation function for the Simple BLE Peripheral.
  */
 extern void ProjectZero_createTask(void);
+extern void other_createTask(void);
 
 
 /*********************************************************************

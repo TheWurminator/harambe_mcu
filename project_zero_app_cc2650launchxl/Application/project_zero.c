@@ -35,17 +35,28 @@
  */
 #include <string.h>
 
-//#define xdc_runtime_Log_DISABLE_ALL 1  // Add to disable logs from this file
+#define xdc_runtime_Log_DISABLE_ALL 1  // Add to disable logs from this file
+
+//typedef ti_sysbios_knl_Mailbox_Object* ti_sysbios_knl_Mailbox_Handle;
 
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Queue.h>
+#include <ti/sysbios/knl/Mailbox.h>
+/* BIOS Header files */
+#include <ti/sysbios/BIOS.h>
+
+extern const ti_sysbios_knl_Mailbox_Handle mbx;
 
 #include <ti/drivers/PIN.h>
-#include <ti/mw/display/Display.h>
 
-#include <xdc/runtime/Log.h>
+//#include <xdc/runtime/Log.h>
 #include <xdc/runtime/Diags.h>
+#include <xdc/std.h>
+#include <xdc/runtime/System.h>
+
+//NEED THIS FOR A SEMAPHORE TO WORK!!!!!!!!!!!!!!!!
+#include <xdc/cfg/global.h>
 
 // Stack headers
 #include <hci_tl.h>
@@ -64,11 +75,12 @@
 
 #include "Board.h"
 #include "project_zero.h"
+#include "../stn/STN1110.h"
+#include "../LSM9DS1/LSM9DS1.h"
+#include "../Board/Board.h"
 
-// Bluetooth Developer Studio services
-#include "led_service.h"
-#include "button_service.h"
 #include "data_service.h"
+#include <math.h>
 
 
 /*********************************************************************
@@ -85,11 +97,13 @@
 #define DEFAULT_PASSCODE                      000000
 
 // Task configuration
-#define PRZ_TASK_PRIORITY                     1
-
+#define PRZ_TASK_PRIORITY                     2
+#define OTHER_TASK_PRIORITY                     1
 #ifndef PRZ_TASK_STACK_SIZE
 #define PRZ_TASK_STACK_SIZE                   800
 #endif
+
+#define OTHER_STACK_SIZE    512
 
 // Internal Events for RTOS application
 #define PRZ_STATE_CHANGE_EVT                  0x0001
@@ -161,7 +175,16 @@ static Queue_Handle hApplicationMsgQ;
 
 // Task configuration
 Task_Struct przTask;
+Task_Struct LSMTask;
+Task_Struct STNTask;
+Task_Struct CalcTask;
+
+
+// Making the stacks
 Char przTaskStack[PRZ_TASK_STACK_SIZE];
+Char STNTaskStack[OTHER_STACK_SIZE];
+Char LSMTaskStack[OTHER_STACK_SIZE];
+Char CalcTaskStack[OTHER_STACK_SIZE];
 
 
 // GAP - SCAN RSP data (max size = 31 bytes)
@@ -199,7 +222,7 @@ static uint8_t rspTxRetry = 0;
 
 
 // Global display handle
-Display_Handle dispHandle;
+//Display_Handle dispHandle;
 
 /*********************************************************************
  * LOCAL FUNCTIONS
@@ -207,7 +230,10 @@ Display_Handle dispHandle;
 
 static void ProjectZero_init( void );
 static void ProjectZero_taskFxn(UArg a0, UArg a1);
-
+static void STNfxn();
+static void LSMfxn();
+static void Calcfxn();
+void resetLSM();
 static void user_processApplicationMessage(app_msg_t *pMsg);
 static uint8_t ProjectZero_processStackMsg(ICall_Hdr *pMsg);
 static uint8_t ProjectZero_processGATTMsg(gattMsgEvent_t *pMsg);
@@ -223,15 +249,12 @@ static void user_gapBondMgr_passcodeCB(uint8_t *deviceAddr, uint16_t connHandle,
 static void user_gapBondMgr_pairStateCB(uint16_t connHandle, uint8_t state,
                                         uint8_t status);
 
-static void user_handleButtonPress(button_state_t *pState);
 
 // Generic callback handlers for value changes in services.
 static void user_service_ValueChangeCB( uint16_t connHandle, uint16_t svcUuid, uint8_t paramID, uint8_t *pValue, uint16_t len );
 static void user_service_CfgChangeCB( uint16_t connHandle, uint16_t svcUuid, uint8_t paramID, uint8_t *pValue, uint16_t len );
 
 // Task context handlers for generated services.
-static void user_LedService_ValueChangeHandler(char_data_t *pCharData);
-static void user_ButtonService_CfgChangeHandler(char_data_t *pCharData);
 static void user_DataService_ValueChangeHandler(char_data_t *pCharData);
 static void user_DataService_CfgChangeHandler(char_data_t *pCharData);
 
@@ -243,11 +266,18 @@ static void user_enqueueRawAppMsg(app_msg_types_t appMsgType, uint8_t *pData, ui
 static void user_enqueueCharDataMsg(app_msg_types_t appMsgType, uint16_t connHandle,
                                     uint16_t serviceUUID, uint8_t paramID,
                                     uint8_t *pValue, uint16_t len);
-static void buttonCallbackFxn(PIN_Handle handle, PIN_Id pinId);
 
 static char *Util_convertArrayToHexString(uint8_t const *src, uint8_t src_len,
                                           uint8_t *dst, uint8_t dst_len);
 static char *Util_getLocalNameStr(const uint8_t *data);
+
+static PIN_State rstPinState;
+static PIN_Handle rstPinHandle;
+
+PIN_Config rstPinTable[] = {
+    Board_LSM0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+    PIN_TERMINATE
+};
 
 /*********************************************************************
  * PROFILE CALLBACKS
@@ -269,21 +299,7 @@ static gapBondCBs_t user_bondMgrCBs =
 /*
  * Callbacks in the user application for events originating from BLE services.
  */
-// LED Service callback handler.
-// The type LED_ServiceCBs_t is defined in led_service.h
-static LedServiceCBs_t user_LED_ServiceCBs =
-{
-  .pfnChangeCb    = user_service_ValueChangeCB, // Characteristic value change callback handler
-  .pfnCfgChangeCb = NULL, // No notification-/indication enabled chars in LED Service
-};
 
-// Button Service callback handler.
-// The type Button_ServiceCBs_t is defined in button_service.h
-static ButtonServiceCBs_t user_Button_ServiceCBs =
-{
-  .pfnChangeCb    = NULL, // No writable chars in Button Service, so no change handler.
-  .pfnCfgChangeCb = user_service_CfgChangeCB, // Noti/ind configuration callback handler
-};
 
 // Data Service callback handler.
 // The type Data_ServiceCBs_t is defined in data_service.h
@@ -293,6 +309,12 @@ static DataServiceCBs_t user_Data_ServiceCBs =
   .pfnCfgChangeCb = user_service_CfgChangeCB, // Noti/ind configuration callback handler
 };
 
+typedef struct{
+    uint8_t uid;
+    uint8_t intval;
+    double deltaAccel;
+    double deltaGyro;
+}messeji;
 
 /*********************************************************************
  * PUBLIC FUNCTIONS
@@ -318,6 +340,162 @@ void ProjectZero_createTask(void)
   Task_construct(&przTask, ProjectZero_taskFxn, &taskParams, NULL);
 }
 
+void other_createTask(void){
+    Task_Params taskParams;
+
+    //Making stuff for the LSM
+    Task_Params_init(&taskParams);
+    taskParams.stack = LSMTaskStack;
+    taskParams.stackSize = OTHER_STACK_SIZE;
+    taskParams.priority = OTHER_TASK_PRIORITY;
+    Task_construct(&LSMTask, LSMfxn, &taskParams, NULL);
+
+    //Making stuff for the STN
+//    Task_Params_init(&taskParams);
+//    taskParams.stack = STNTaskStack;
+//    taskParams.stackSize = OTHER_STACK_SIZE;
+//    taskParams.priority = OTHER_TASK_PRIORITY;
+//    Task_construct(&STNTask, STNfxn, &taskParams, NULL);
+
+    //Making stuff for the Calc task
+    Task_Params_init(&taskParams);
+    taskParams.stack = CalcTaskStack;
+    taskParams.stackSize = OTHER_STACK_SIZE;
+    taskParams.priority = OTHER_TASK_PRIORITY;
+    Task_construct(&CalcTask, Calcfxn, &taskParams, NULL);
+}
+
+//STN1110 stuff
+
+STN1110 lala;
+
+Void STNfxn(){
+    int x = 0;
+    label:
+    x = x+1;
+    int thing = init(&lala);
+    if(!thing){
+        System_printf("The initialization of the chip was successful\n");
+        System_flush();
+        //Need to perform the check once, definitely don't need to do it every time we want data
+        volatile int ret = begin(&lala);
+        while(1){
+            Semaphore_pend(stnSem, BIOS_WAIT_FOREVER);
+            while(ret != ELM_SUCCESS){ //Waiting for everything to be initialized properly
+                System_printf("Unsuccessful Start\n");
+                System_flush();
+                ret = begin(&lala);
+            }
+            uint8_t speed = getSpeed(&lala);
+            messeji frank;
+            frank.uid = 1;
+            frank.intval = speed;
+            int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
+            Semaphore_post(lsmSem);
+        }
+    }
+    else{
+        System_printf("UART NOT INITIALIZED PROPERLY\n");
+        System_flush();
+        goto label;
+    }
+}
+
+//LSM Stuff
+LSM9DS1 imu;
+Void LSMfxn(){
+    LSM9DS1Init(&imu);
+    while(!LSM9DS1begin(&resetLSM, &imu)){
+        System_printf("This shouldn't happen\n");
+        System_flush();
+    }
+
+    while(1){
+        Semaphore_pend(lsmSem, BIOS_WAIT_FOREVER);
+        LSM9DS1readAccel(&imu);
+        LSM9DS1readGyro(&imu);
+        //Post to the mailbox
+        float accel[1][3];
+        float gyro[1][3];
+        accel[1][0] = LSM9DS1calcAccel(imu.ax, &imu);
+        accel[1][1] = LSM9DS1calcAccel(imu.ay, &imu);
+        accel[1][2] = LSM9DS1calcAccel(imu.az, &imu);
+        gyro[1][0] = LSM9DS1calcGyro(imu.gx, &imu);
+        gyro[1][1] = LSM9DS1calcGyro(imu.gy, &imu);
+        gyro[1][2] = LSM9DS1calcGyro(imu.gz, &imu);
+        double magAccel = sqrt(pow((double)accel[1][0],2.0) + pow((double)accel[1][2],2.0) + pow((double)accel[1][1],2.0));
+        double magGyro = sqrt(pow((double)gyro[1][0],2.0) + pow((double)gyro[1][1],2.0) + pow((double)gyro[1][2],2.0));
+        messeji frank;
+        frank.uid = 2;
+        frank.deltaAccel = magAccel;
+        frank.deltaGyro = magGyro;
+        int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
+        Semaphore_post(stnSem); //Get data from the vehicle
+    }
+}
+
+//This function just restarts the LSM
+void resetLSM(){
+    System_printf("Resetting\n");
+    System_flush();
+    PIN_setOutputValue(rstPinHandle, Board_LSM0, 0);
+    Task_sleep(10000);
+    PIN_setOutputValue(rstPinHandle, Board_LSM0, 1);
+    Task_sleep(10000);
+    //We're done resetting the LSM
+}
+
+//This function performs the actual calculation
+
+//       uint16_t svcUuid = DATA_SERVICE_SERV_UUID;
+//       uint8_t paramID = 0;
+    //   uint8_t *pValue = yes;
+//        uint16_t len = 0x0003;
+//       uint8_t initString2[] = "yes";
+//      System_printf("inside\n");
+//      System_flush();
+
+     // DataService_SetParameter(DS_STRING_ID, sizeof(initString2), initString2);
+     // user_service_ValueChangeCB(connHandle, svcUuid, paramID, pValue, len);
+
+Void Calcfxn(){
+    //Pending on one mailbox
+    //Will differentiate by ID for the STN and the LSM
+    uint8_t lsmCount = 0;
+    uint8_t stnCount = 0;
+    uint8_t speedVals[5];
+    double gyroVals[5];
+    double accelVals[5];
+    double finalGyro = 0.0;
+    double finalAccel = 0.0;
+    double finalSpeed = 0.0;
+    while(1){
+        messeji frank;
+        int_fast16_t ret = Mailbox_pend(mbx, &frank, BIOS_WAIT_FOREVER);
+        if(ret){
+            if(frank.uid == 1){
+                speedVals[stnCount] = frank.intval;
+                stnCount++;
+            }
+            if(frank.uid == 2){
+                gyroVals[lsmCount] = frank.deltaGyro;
+                accelVals[lsmCount] = frank.deltaAccel;
+                lsmCount++;
+            }
+            if(lsmCount == 5 && stnCount == 5){
+                //THIS IS THE FINAL CALCULATION
+                int i = 0;
+                for(i=0;i<5;i++){
+
+                }
+            }
+        }
+        else{
+            //ERROR
+        }
+    }
+}
+
 /*
  * @brief   Called before the task loop and contains application-specific
  *          initialization of the BLE stack, hardware setup, power-state
@@ -336,58 +514,10 @@ static void ProjectZero_init(void)
   // so that the application can send and receive messages via ICall to Stack.
   ICall_registerApp(&selfEntity, &sem);
 
-  Log_info0("Initializing the user task, hardware, BLE stack and services.");
-
-  // Open display. By default this is disabled via the predefined symbol Display_DISABLE_ALL.
-  dispHandle = Display_open(Display_Type_LCD, NULL);
-
   // Initialize queue for application messages.
   // Note: Used to transfer control to application thread from e.g. interrupts.
   Queue_construct(&applicationMsgQ, NULL);
   hApplicationMsgQ = Queue_handle(&applicationMsgQ);
-
-  // ******************************************************************
-  // Hardware initialization
-  // ******************************************************************
-
-  // Open LED pins
-//  ledPinHandle = PIN_open(&ledPinState, ledPinTable);
-//  if(!ledPinHandle) {
-//    Log_error0("Error initializing board LED pins");
-//    Task_exit();
-//  }
-//
-//  buttonPinHandle = PIN_open(&buttonPinState, buttonPinTable);
-//  if(!buttonPinHandle) {
-//    Log_error0("Error initializing button pins");
-//    Task_exit();
-//  }
-
-//  // Setup callback for button pins
-//  if (PIN_registerIntCb(buttonPinHandle, &buttonCallbackFxn) != 0) {
-//    Log_error0("Error registering button callback function");
-//    Task_exit();
-//  }
-//
-//  // Create the debounce clock objects for Button 0 and Button 1
-//  Clock_Params clockParams;
-//  Clock_Params_init(&clockParams);
-//
-//  // Both clock objects use the same callback, so differentiate on argument
-//  // given to the callback in Swi context
-//  clockParams.arg = Board_BUTTON0;
-//
-//  // Initialize to 50 ms timeout when Clock_start is called.
-//  // Timeout argument is in ticks, so convert from ms to ticks via tickPeriod.
-//  Clock_construct(&button0DebounceClock, buttonDebounceSwiFxn,
-//                  50 * (1000/Clock_tickPeriod),
-//                  &clockParams);
-//
-//  // Second button
-//  clockParams.arg = Board_BUTTON1;
-//  Clock_construct(&button1DebounceClock, buttonDebounceSwiFxn,
-//                  50 * (1000/Clock_tickPeriod),
-//                  &clockParams);
 
   // ******************************************************************
   // BLE Stack initialization
@@ -414,8 +544,8 @@ static void ProjectZero_init(void)
   // Initialize Advertisement data
   GAPRole_SetParameter(GAPROLE_ADVERT_DATA, sizeof(advertData), advertData);
 
-  Log_info1("Name in advertData array: \x1b[33m%s\x1b[0m",
-            (IArg)Util_getLocalNameStr(advertData));
+  //Log_info1("Name in advertData array: \x1b[33m%s\x1b[0m",
+//            (IArg)Util_getLocalNameStr(advertData));
 
   // Set advertising interval
   uint16_t advInt = DEFAULT_ADVERTISING_INTERVAL;
@@ -457,27 +587,17 @@ static void ProjectZero_init(void)
   GGS_SetParameter(GGS_DEVICE_NAME_ATT, GAP_DEVICE_NAME_LEN, attDeviceName);
 
   // Add services to GATT server and give ID of this task for Indication acks.
-//  LedService_AddService( selfEntity );
-//  ButtonService_AddService( selfEntity );
   DataService_AddService( selfEntity );
 
   // Register callbacks with the generated services that
   // can generate events (writes received) to the application
-//  LedService_RegisterAppCBs( &user_LED_ServiceCBs );
-//  ButtonService_RegisterAppCBs( &user_Button_ServiceCBs );
+
   DataService_RegisterAppCBs( &user_Data_ServiceCBs );
 
   // Placeholder variable for characteristic intialization
   uint8_t initVal[40] = {0};
   uint8_t initString[] = "This is a pretty long string, isn't it!";
-//
-//  // Initalization of characteristics in LED_Service that can provide data.
-//  LedService_SetParameter(LS_LED0_ID, LS_LED0_LEN, initVal);
-//  LedService_SetParameter(LS_LED1_ID, LS_LED1_LEN, initVal);
-//
-//  // Initalization of characteristics in Button_Service that can provide data.
-//  ButtonService_SetParameter(BS_BUTTON0_ID, BS_BUTTON0_LEN, initVal);
-//  ButtonService_SetParameter(BS_BUTTON1_ID, BS_BUTTON1_LEN, initVal);
+
 
   // Initalization of characteristics in Data_Service that can provide data.
   DataService_SetParameter(DS_STRING_ID, sizeof(initString), initString);
@@ -582,7 +702,6 @@ static void ProjectZero_taskFxn(UArg a0, UArg a1)
   }
 }
 
-
 /*
  * @brief   Handle application messages
  *
@@ -636,9 +755,9 @@ static void user_processApplicationMessage(app_msg_t *pMsg)
     case APP_MSG_SEND_PASSCODE: /* Message about pairing PIN request */
       {
         passcode_req_t *pReq = (passcode_req_t *)pMsg->pdu;
-        Log_info2("BondMgr Requested passcode. We are %s passcode %06d",
-                  (IArg)(pReq->uiInputs?"Sending":"Displaying"),
-                  DEFAULT_PASSCODE);
+//        //Log_info2("BondMgr Requested passcode. We are %s passcode %06d",
+//                  (IArg)(pReq->uiInputs?"Sending":"Displaying"),
+//                  DEFAULT_PASSCODE);
         // Send passcode response.
         GAPBondMgr_PasscodeRsp(pReq->connHandle, SUCCESS, DEFAULT_PASSCODE);
       }
@@ -697,12 +816,12 @@ static void user_processGapStateChangeEvt(gaprole_States_t newState)
 
         // Display device address
         char *cstr_ownAddress = Util_convertBdAddr2Str(ownAddress);
-        Log_info1("GAP is started. Our address: \x1b[32m%s\x1b[0m", (IArg)cstr_ownAddress);
+        //Log_info1("GAP is started. Our address: \x1b[32m%s\x1b[0m", (IArg)cstr_ownAddress);
       }
       break;
 
     case GAPROLE_ADVERTISING:
-      Log_info0("Advertising");
+      //Log_info0("Advertising");
       break;
 
     case GAPROLE_CONNECTED:
@@ -712,24 +831,24 @@ static void user_processGapStateChangeEvt(gaprole_States_t newState)
         GAPRole_GetParameter(GAPROLE_CONN_BD_ADDR, peerAddress);
 
         char *cstr_peerAddress = Util_convertBdAddr2Str(peerAddress);
-        Log_info1("Connected. Peer address: \x1b[32m%s\x1b[0m", (IArg)cstr_peerAddress);
+        //Log_info1("Connected. Peer address: \x1b[32m%s\x1b[0m", (IArg)cstr_peerAddress);
        }
       break;
 
     case GAPROLE_CONNECTED_ADV:
-      Log_info0("Connected and advertising");
+      //Log_info0("Connected and advertising");
       break;
 
     case GAPROLE_WAITING:
-      Log_info0("Disconnected / Idle");
+      //Log_info0("Disconnected / Idle");
       break;
 
     case GAPROLE_WAITING_AFTER_TIMEOUT:
-      Log_info0("Connection timed out");
+      //Log_info0("Connection timed out");
       break;
 
     case GAPROLE_ERROR:
-      Log_info0("Error");
+      //Log_info0("Error");
       break;
 
     default:
@@ -759,7 +878,7 @@ static void user_processGapStateChangeEvt(gaprole_States_t newState)
 //  switch (pCharData->paramID)
 //  {
 //    case LS_LED0_ID:
-//      Log_info3("Value Change msg: %s %s: %s",
+//      //Log_info3("Value Change msg: %s %s: %s",
 //                (IArg)"LED Service",
 //                (IArg)"LED0",
 //                (IArg)pretty_data_holder);
@@ -768,13 +887,13 @@ static void user_processGapStateChangeEvt(gaprole_States_t newState)
 //      // -------------------------
 //      // Set the output value equal to the received value. 0 is off, not 0 is on
 //      PIN_setOutputValue(ledPinHandle, Board_LED0, pCharData->data[0]);
-//      Log_info2("Turning %s %s",
+//      //Log_info2("Turning %s %s",
 //                (IArg)"\x1b[31mLED0\x1b[0m",
 //                (IArg)(pCharData->data[0]?"on":"off"));
 //      break;
 //
 //    case LS_LED1_ID:
-//      Log_info3("Value Change msg: %s %s: %s",
+//      //Log_info3("Value Change msg: %s %s: %s",
 //                (IArg)"LED Service",
 //                (IArg)"LED1",
 //                (IArg)pretty_data_holder);
@@ -783,7 +902,7 @@ static void user_processGapStateChangeEvt(gaprole_States_t newState)
 //      // -------------------------
 //      // Set the output value equal to the received value. 0 is off, not 0 is on
 //      PIN_setOutputValue(ledPinHandle, Board_LED1, pCharData->data[0]);
-//      Log_info2("Turning %s %s",
+//      //Log_info2("Turning %s %s",
 //                (IArg)"\x1b[32mLED1\x1b[0m",
 //                (IArg)(pCharData->data[0]?"on":"off"));
 //      break;
@@ -822,17 +941,17 @@ void user_DataService_ValueChangeHandler(char_data_t *pCharData)
       memcpy(received_string, pCharData->data, DS_STRING_LEN-1);
       // Needed to copy before log statement, as the holder array remains after
       // the pCharData message has been freed and reused for something else.
-      Log_info3("Value Change msg: %s %s: %s",
-                (IArg)"Data Service",
-                (IArg)"String",
-                (IArg)received_string);
+      //Log_info3("Value Change msg: %s %s: %s",
+//                (IArg)"Data Service",
+//                (IArg)"String",
+//                (IArg)received_string);
       break;
 
     case DS_STREAM_ID:
-      Log_info3("Value Change msg: Data Service Stream: %02x:%02x:%02x...",
-                (IArg)pCharData->data[0],
-                (IArg)pCharData->data[1],
-                (IArg)pCharData->data[2]);
+      //Log_info3("Value Change msg: Data Service Stream: %02x:%02x:%02x...",
+//                (IArg)pCharData->data[0],
+//                (IArg)pCharData->data[1],
+//                (IArg)pCharData->data[2]);
       // -------------------------
       // Do something useful with pCharData->data here
       break;
@@ -853,37 +972,6 @@ void user_DataService_ValueChangeHandler(char_data_t *pCharData)
  */
 void user_DataService_CfgChangeHandler(char_data_t *pCharData)
 {
-  // Cast received data to uint16, as that's the format for CCCD writes.
-  uint16_t configValue = *(uint16_t *)pCharData->data;
-  char *configValString;
-
-  // Determine what to tell the user
-  switch(configValue)
-  {
-  case GATT_CFG_NO_OPERATION:
-    configValString = "Noti/Ind disabled";
-    break;
-  case GATT_CLIENT_CFG_NOTIFY:
-    configValString = "Notifications enabled";
-    break;
-  case GATT_CLIENT_CFG_INDICATE:
-    configValString = "Indications enabled";
-    break;
-  }
-
-  switch (pCharData->paramID)
-  {
-    case DS_STREAM_ID:
-      Log_info3("CCCD Change msg: %s %s: %s",
-                (IArg)"Data Service",
-                (IArg)"Stream",
-                (IArg)configValString);
-      // -------------------------
-      // Do something useful with configValue here. It tells you whether someone
-      // wants to know the state of this characteristic.
-      // ...
-      break;
-  }
 }
 
 
@@ -916,7 +1004,7 @@ static uint8_t ProjectZero_processStackMsg(ICall_Hdr *pMsg)
         {
           case HCI_COMMAND_COMPLETE_EVENT_CODE:
             // Process HCI Command Complete Event
-            Log_info0("HCI Command Complete Event received");
+            //Log_info0("HCI Command Complete Event received");
             break;
 
           default:
@@ -944,8 +1032,8 @@ static uint8_t ProjectZero_processGATTMsg(gattMsgEvent_t *pMsg)
   // See if GATT server was unable to transmit an ATT response
   if (pMsg->hdr.status == blePending)
   {
-    Log_warning1("Outgoing RF FIFO full. Re-schedule transmission of msg with opcode 0x%02x",
-      pMsg->method);
+    //Log_warning1("Outgoing RF FIFO full. Re-schedule transmission of msg with opcode 0x%02x",
+//      pMsg->method);
 
     // No HCI buffer was available. Let's try to retransmit the response
     // on the next connection event.
@@ -968,19 +1056,14 @@ static uint8_t ProjectZero_processGATTMsg(gattMsgEvent_t *pMsg)
     // violated. All subsequent ATT requests or indications will be dropped.
     // The app is informed in case it wants to drop the connection.
 
-    // Log the opcode of the message that caused the violation.
-    Log_error1("Flow control violated. Opcode of offending ATT msg: 0x%02x",
-      pMsg->msg.flowCtrlEvt.opcode);
   }
   else if (pMsg->method == ATT_MTU_UPDATED_EVENT)
   {
     // MTU size updated
-    Log_info1("MTU Size change: %d bytes", pMsg->msg.mtuEvt.MTU);
   }
   else
   {
     // Got an expected GATT message from a peer.
-    Log_info1("Recevied GATT Message. Opcode: 0x%02x", pMsg->method);
   }
 
   // Free message payload. Needed only for ATT Protocol messages
@@ -1029,8 +1112,8 @@ static void ProjectZero_sendAttRsp(void)
     else
     {
       // Continue retrying
-      Log_warning2("Retrying message with opcode 0x%02x. Attempt %d",
-        pAttRsp->method, rspTxRetry);
+      //Log_warning2("Retrying message with opcode 0x%02x. Attempt %d",
+//        pAttRsp->method, rspTxRetry);
     }
   }
 }
@@ -1050,13 +1133,13 @@ static void ProjectZero_freeAttRsp(uint8_t status)
     // See if the response was sent out successfully
     if (status == SUCCESS)
     {
-      Log_info2("Sent message with opcode 0x%02x. Attempt %d",
-        pAttRsp->method, rspTxRetry);
+      //Log_info2("Sent message with opcode 0x%02x. Attempt %d",
+//        pAttRsp->method, rspTxRetry);
     }
     else
     {
-      Log_error2("Gave up message with opcode 0x%02x. Status: %d",
-        pAttRsp->method, status);
+      //Log_error2("Gave up message with opcode 0x%02x. Status: %d",
+//        pAttRsp->method, status);
 
       // Free response payload
       GATT_bm_free(&pAttRsp->msg, pAttRsp->method);
@@ -1093,7 +1176,7 @@ static void ProjectZero_freeAttRsp(uint8_t status)
  */
 static void user_gapStateChangeCB(gaprole_States_t newState)
 {
-  Log_info1("(CB) GAP State change: %d, Sending msg to app.", (IArg)newState);
+  //Log_info1("(CB) GAP State change: %d, Sending msg to app.", (IArg)newState);
   user_enqueueRawAppMsg( APP_MSG_GAP_STATE_CHANGE, (uint8_t *)&newState, sizeof(newState) );
 }
 
@@ -1137,24 +1220,24 @@ static void user_gapBondMgr_pairStateCB(uint16_t connHandle, uint8_t state,
 {
   if (state == GAPBOND_PAIRING_STATE_STARTED)
   {
-    Log_info0("Pairing started");
+    //Log_info0("Pairing started");
   }
   else if (state == GAPBOND_PAIRING_STATE_COMPLETE)
   {
     if (status == SUCCESS)
     {
-      Log_info0("Pairing completed successfully.");
+      //Log_info0("Pairing completed successfully.");
     }
     else
     {
-      Log_error1("Pairing failed. Error: %02x", status);
+      //Log_error1("Pairing failed. Error: %02x", status);
     }
   }
   else if (state == GAPBOND_PAIRING_STATE_BONDED)
   {
     if (status == SUCCESS)
     {
-     Log_info0("Re-established pairing from stored bond info.");
+     //Log_info0("Re-established pairing from stored bond info.");
     }
   }
 }
@@ -1166,9 +1249,7 @@ static void user_service_ValueChangeCB( uint16_t connHandle, uint16_t svcUuid,
                                         uint8_t paramID, uint8_t *pValue,
                                         uint16_t len )
 {
-  // See the service header file to compare paramID with characteristic.
-  Log_info2("(CB) Characteristic value change: svc(0x%04x) paramID(%d). "
-            "Sending msg to app.", (IArg)svcUuid, (IArg)paramID);
+
   user_enqueueCharDataMsg(APP_MSG_SERVICE_WRITE, connHandle, svcUuid, paramID,
                           pValue, len);
 }
@@ -1180,8 +1261,8 @@ static void user_service_CfgChangeCB( uint16_t connHandle, uint16_t svcUuid,
                                       uint8_t paramID, uint8_t *pValue,
                                       uint16_t len )
 {
-  Log_info2("(CB) Char config change: svc(0x%04x) paramID(%d). "
-            "Sending msg to app.", (IArg)svcUuid, (IArg)paramID);
+  //Log_info2("(CB) Char config change: svc(0x%04x) paramID(%d). "
+//            "Sending msg to app.", (IArg)svcUuid, (IArg)paramID);
   user_enqueueCharDataMsg(APP_MSG_SERVICE_CFG, connHandle, svcUuid,
                           paramID, pValue, len);
 }
@@ -1297,18 +1378,7 @@ static void user_enqueueRawAppMsg(app_msg_types_t appMsgType, uint8_t *pData,
  */
 static void user_updateCharVal(char_data_t *pCharData)
 {
-  switch(pCharData->svcUUID) {
-    case LED_SERVICE_SERV_UUID:
-      LedService_SetParameter(pCharData->paramID, pCharData->dataLen,
-                              pCharData->data);
-    break;
 
-    case BUTTON_SERVICE_SERV_UUID:
-      ButtonService_SetParameter(pCharData->paramID, pCharData->dataLen,
-                                 pCharData->data);
-    break;
-
-  }
 }
 
 /*

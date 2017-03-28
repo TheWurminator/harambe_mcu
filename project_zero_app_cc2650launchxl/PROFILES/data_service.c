@@ -235,7 +235,7 @@ extern bStatus_t DataService_AddService( uint8_t rspTaskId )
                                         GATT_NUM_ATTRS( Data_ServiceAttrTbl ),
                                         GATT_MAX_ENCRYPT_KEY_SIZE,
                                         &Data_ServiceCBs );
-  Log_info1("Registered service, %d attributes", (IArg)GATT_NUM_ATTRS( Data_ServiceAttrTbl ));
+  //Log_info1("Registered service, %d attributes", (IArg)GATT_NUM_ATTRS( Data_ServiceAttrTbl ));
   ds_icall_rsp_task_id = rspTaskId;
 
   return ( status );
@@ -252,7 +252,7 @@ bStatus_t DataService_RegisterAppCBs( DataServiceCBs_t *appCallbacks )
   if ( appCallbacks )
   {
     pAppCBs = appCallbacks;
-    Log_info1("Registered callbacks to application. Struct %p", (IArg)appCallbacks);
+    //Log_info1("Registered callbacks to application. Struct %p", (IArg)appCallbacks);
     return ( SUCCESS );
   }
   else
@@ -290,7 +290,7 @@ bStatus_t DataService_SetParameter( uint8_t param, uint16_t len, void *value )
       pValLen   = &ds_StringValLen;
       valMinLen =  DS_STRING_LEN_MIN;
       valMaxLen =  DS_STRING_LEN;
-      Log_info2("SetParameter : %s len: %d", (IArg)"String", (IArg)len);
+      //Log_info2("SetParameter : %s len: %d", (IArg)"String", (IArg)len);
       break;
 
     case DS_STREAM_ID:
@@ -301,11 +301,11 @@ bStatus_t DataService_SetParameter( uint8_t param, uint16_t len, void *value )
       sendNotiInd = TRUE;
       attrConfig  = ds_StreamConfig;
       needAuth    = FALSE; // Change if authenticated link is required for sending.
-      Log_info2("SetParameter : %s len: %d", (IArg)"Stream", (IArg)len);
+      //Log_info2("SetParameter : %s len: %d", (IArg)"Stream", (IArg)len);
       break;
 
     default:
-      Log_error1("SetParameter: Parameter #%d not valid.", (IArg)param);
+      //Log_error1("SetParameter: Parameter #%d not valid.", (IArg)param);
       return INVALIDPARAMETER;
   }
 
@@ -317,11 +317,11 @@ bStatus_t DataService_SetParameter( uint8_t param, uint16_t len, void *value )
 
     if (sendNotiInd)
     {
-      Log_info2("Trying to send noti/ind: connHandle %x, %s",
-                (IArg)attrConfig[0].connHandle,
-                (IArg)((attrConfig[0].value==0)?"\x1b[33mNoti/ind disabled\x1b[0m" :
-                       (attrConfig[0].value==1)?"Notification enabled" :
-                                                "Indication enabled"));
+      //Log_info2("Trying to send noti/ind: connHandle %x, %s",
+//                (IArg)attrConfig[0].connHandle,
+//                (IArg)((attrConfig[0].value==0)?"\x1b[33mNoti/ind disabled\x1b[0m" :
+//                       (attrConfig[0].value==1)?"Notification enabled" :
+//                                                "Indication enabled"));
       // Try to send notification.
       GATTServApp_ProcessCharCfg( attrConfig, pAttrVal, needAuth,
                                   Data_ServiceAttrTbl, GATT_NUM_ATTRS( Data_ServiceAttrTbl ),
@@ -357,17 +357,17 @@ bStatus_t DataService_GetParameter( uint8_t param, uint16_t *len, void *value )
     case DS_STRING_ID:
       *len = MIN(*len, ds_StringValLen);
       memcpy(value, ds_StringVal, *len);
-      Log_info2("GetParameter : %s returning %d bytes", (IArg)"String", (IArg)*len);
+      //Log_info2("GetParameter : %s returning %d bytes", (IArg)"String", (IArg)*len);
       break;
 
     case DS_STREAM_ID:
       *len = MIN(*len, ds_StreamValLen);
       memcpy(value, ds_StreamVal, *len);
-      Log_info2("GetParameter : %s returning %d bytes", (IArg)"Stream", (IArg)*len);
+      //Log_info2("GetParameter : %s returning %d bytes", (IArg)"Stream", (IArg)*len);
       break;
 
     default:
-      Log_error1("GetParameter: Parameter #%d not valid.", (IArg)param);
+      //Log_error1("GetParameter: Parameter #%d not valid.", (IArg)param);
       ret = INVALIDPARAMETER;
       break;
   }
@@ -501,10 +501,10 @@ static bStatus_t Data_Service_WriteAttrCB( uint16_t connHandle, gattAttribute_t 
   // See if request is regarding a Client Characterisic Configuration
   if (ATT_BT_UUID_SIZE == pAttr->type.len && GATT_CLIENT_CHAR_CFG_UUID == *(uint16_t *)pAttr->type.uuid)
   {
-    Log_info3("WriteAttrCB (CCCD): param: %d connHandle: %d %s",
-              (IArg)Data_Service_findCharParamId(pAttr),
-              (IArg)connHandle,
-              (IArg)(method == GATT_LOCAL_WRITE?"- restoring bonded state":"- OTA write"));
+    //Log_info3("WriteAttrCB (CCCD): param: %d connHandle: %d %s",
+//              (IArg)Data_Service_findCharParamId(pAttr),
+//              (IArg)connHandle,
+//              (IArg)(method == GATT_LOCAL_WRITE?"- restoring bonded state":"- OTA write"));
 
     // Allow notification and indication, but do not check if really allowed per CCCD.
     status = GATTServApp_ProcessCCCWriteReq( connHandle, pAttr, pValue, len,

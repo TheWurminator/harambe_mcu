@@ -40,6 +40,7 @@
 //NEED THIS FOR A SEMAPHORE TO WORK!!!!!!!!!!!!!!!!
 #include <xdc/cfg/global.h>
 //Gross
+//typedef ti_sysbios_knl_Mailbox_Object* ti_sysbios_knl_Mailbox_Handle
 extern const ti_sysbios_knl_Mailbox_Handle mbx;
 
 /* BIOS Header files */
@@ -188,7 +189,6 @@ Void printData(){
             frank.deltaGyro = deltaGyro;
             int ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
         }
-//        System_flush();
         Semaphore_post(postWaitSem);
     }
 }
