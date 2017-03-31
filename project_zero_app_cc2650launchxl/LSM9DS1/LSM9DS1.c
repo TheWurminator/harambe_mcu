@@ -144,7 +144,8 @@ uint16_t LSM9DS1begin(void (* rstPtr)(), LSM9DS1 * thing)
 
     // Magnetometer initialization stuff:
     LSM9DS1initMag(thing); // "Turn on" all axes of the mag. Set up interrupts, etc.
-
+    System_printf("Leaving this thing");
+    System_flush();
     // Once everything is initialized, return the WHO_AM_I registers we read:
     return whoAmICombined;
 }

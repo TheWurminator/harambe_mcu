@@ -61,6 +61,8 @@
 #include "project_zero.h"
 
 #include <ti/drivers/UART.h>
+#include <ti/drivers/I2C.h>
+
 /* Header files required to enable instruction fetch cache */
 #include <inc/hw_memmap.h>
 #include <driverlib/vims.h>
@@ -68,6 +70,7 @@
 #ifndef USE_DEFAULT_USER_CFG
 
 #include "ble_user_config.h"
+#include "../Board/Board.h"
 
 // BLE user defined configuration
 bleUserCfg_t user0Cfg = BLE_USER_CFG;
@@ -126,17 +129,18 @@ int main()
 
   PIN_init(BoardGpioInitTable);
 
-#ifndef POWER_SAVING
-  /* Set constraints for Standby, powerdown and idle mode */
-  Power_setConstraint(PowerCC26XX_SB_DISALLOW);
-  Power_setConstraint(PowerCC26XX_IDLE_PD_DISALLOW);
-#endif // POWER_SAVING
+
+//#ifndef POWER_SAVING
+//  /* Set constraints for Standby, powerdown and idle mode */
+//  Power_setConstraint(PowerCC26XX_SB_DISALLOW);
+//  Power_setConstraint(PowerCC26XX_IDLE_PD_DISALLOW);
+//#endif // POWER_SAVING
 
   /* Initialize the RTOS Log formatting and output to UART in Idle thread.
    * Note: Define xdc_runtime_Log_DISABLE_ALL to remove all impact of Log.
    * Note: NULL as Params gives 115200,8,N,1 and Blocking mode */
   UART_init();
-//  UartLog_init(UART_open(Board_UART, NULL));
+  I2C_init();
 
   /* Initialize ICall module */
   ICall_init();

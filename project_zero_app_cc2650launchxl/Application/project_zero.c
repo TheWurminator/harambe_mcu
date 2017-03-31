@@ -341,28 +341,35 @@ void ProjectZero_createTask(void)
 }
 
 void other_createTask(void){
+
+    rstPinHandle = PIN_open(&rstPinState, rstPinTable);
+    if(!rstPinHandle) {
+        System_abort("Error initializing board LED pins\n");
+    }
+    PIN_setOutputValue(rstPinHandle, Board_LSM0, 1);
+
     Task_Params taskParams;
 
     //Making stuff for the LSM
-    Task_Params_init(&taskParams);
-    taskParams.stack = LSMTaskStack;
-    taskParams.stackSize = OTHER_STACK_SIZE;
-    taskParams.priority = OTHER_TASK_PRIORITY;
-    Task_construct(&LSMTask, LSMfxn, &taskParams, NULL);
-
-    //Making stuff for the STN
 //    Task_Params_init(&taskParams);
-//    taskParams.stack = STNTaskStack;
+//    taskParams.stack = LSMTaskStack;
 //    taskParams.stackSize = OTHER_STACK_SIZE;
 //    taskParams.priority = OTHER_TASK_PRIORITY;
-//    Task_construct(&STNTask, STNfxn, &taskParams, NULL);
+//    Task_construct(&LSMTask, LSMfxn, &taskParams, NULL);
 
-    //Making stuff for the Calc task
+    //Making stuff for the STN
     Task_Params_init(&taskParams);
-    taskParams.stack = CalcTaskStack;
+    taskParams.stack = STNTaskStack;
     taskParams.stackSize = OTHER_STACK_SIZE;
     taskParams.priority = OTHER_TASK_PRIORITY;
-    Task_construct(&CalcTask, Calcfxn, &taskParams, NULL);
+    Task_construct(&STNTask, STNfxn, &taskParams, NULL);
+
+    //Making stuff for the Calc task
+//    Task_Params_init(&taskParams);
+//    taskParams.stack = CalcTaskStack;
+//    taskParams.stackSize = OTHER_STACK_SIZE;
+//    taskParams.priority = OTHER_TASK_PRIORITY;
+//    Task_construct(&CalcTask, Calcfxn, &taskParams, NULL);
 }
 
 //STN1110 stuff
@@ -370,6 +377,7 @@ void other_createTask(void){
 STN1110 lala;
 
 Void STNfxn(){
+    Semaphore_pend(stnInit, BIOS_WAIT_FOREVER);
     int x = 0;
     label:
     x = x+1;
@@ -379,19 +387,23 @@ Void STNfxn(){
         System_flush();
         //Need to perform the check once, definitely don't need to do it every time we want data
         volatile int ret = begin(&lala);
+        while(ret != ELM_SUCCESS){ //Waiting for everything to be initialized properly
+            System_printf("Unsuccessful Start\n");
+            System_flush();
+            ret = begin(&lala);
+        }
+        Semaphore_post(lsmSem);
         while(1){
             Semaphore_pend(stnSem, BIOS_WAIT_FOREVER);
-            while(ret != ELM_SUCCESS){ //Waiting for everything to be initialized properly
-                System_printf("Unsuccessful Start\n");
-                System_flush();
-                ret = begin(&lala);
-            }
+            System_printf("Going to get speed now");
+            System_flush();
             uint8_t speed = getSpeed(&lala);
-            messeji frank;
-            frank.uid = 1;
-            frank.intval = speed;
-            int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
-            Semaphore_post(lsmSem);
+            System_printf("%d\n", speed);
+            System_flush();
+//            messeji frank;
+//            frank.uid = 1;
+//            frank.intval = speed;
+//            int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
         }
     }
     else{
@@ -404,14 +416,20 @@ Void STNfxn(){
 //LSM Stuff
 LSM9DS1 imu;
 Void LSMfxn(){
+    System_printf("This is bad");
+    System_flush();
     LSM9DS1Init(&imu);
+    System_printf("Done with initialization\n");
+    System_flush();
     while(!LSM9DS1begin(&resetLSM, &imu)){
         System_printf("This shouldn't happen\n");
         System_flush();
     }
-
+    Semaphore_post(stnInit);
     while(1){
         Semaphore_pend(lsmSem, BIOS_WAIT_FOREVER);
+        System_printf("wefiojewoifjweoifjwioef\n");
+        System_flush();
         LSM9DS1readAccel(&imu);
         LSM9DS1readGyro(&imu);
         //Post to the mailbox
@@ -425,12 +443,13 @@ Void LSMfxn(){
         gyro[1][2] = LSM9DS1calcGyro(imu.gz, &imu);
         double magAccel = sqrt(pow((double)accel[1][0],2.0) + pow((double)accel[1][2],2.0) + pow((double)accel[1][1],2.0));
         double magGyro = sqrt(pow((double)gyro[1][0],2.0) + pow((double)gyro[1][1],2.0) + pow((double)gyro[1][2],2.0));
-        messeji frank;
-        frank.uid = 2;
-        frank.deltaAccel = magAccel;
-        frank.deltaGyro = magGyro;
-        int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
-        Semaphore_post(stnSem); //Get data from the vehicle
+        System_printf("%f %f", magAccel, magGyro);
+        System_flush();
+//        messeji frank;
+//        frank.uid = 2;
+//        frank.deltaAccel = magAccel;
+//        frank.deltaGyro = magGyro;
+//        int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
     }
 }
 
@@ -469,6 +488,12 @@ Void Calcfxn(){
     double finalGyro = 0.0;
     double finalAccel = 0.0;
     double finalSpeed = 0.0;
+    uint16_t svcUuid = DATA_SERVICE_SERV_UUID;
+    uint8_t paramID = 0;
+    uint8_t pValue = 121;
+    uint16_t len = 0x0003;
+    uint8_t initString2[] = "yes";
+
     while(1){
         messeji frank;
         int_fast16_t ret = Mailbox_pend(mbx, &frank, BIOS_WAIT_FOREVER);
@@ -480,19 +505,22 @@ Void Calcfxn(){
             if(frank.uid == 2){
                 gyroVals[lsmCount] = frank.deltaGyro;
                 accelVals[lsmCount] = frank.deltaAccel;
+                System_printf("Got data from lsm");
+                System_flush();
                 lsmCount++;
             }
-            if(lsmCount == 5 && stnCount == 5){
+            if(lsmCount == 5){
                 //THIS IS THE FINAL CALCULATION
-                int i = 0;
-                for(i=0;i<5;i++){
+                DataService_SetParameter(DS_STRING_ID, sizeof(initString2), initString2);
+                user_service_ValueChangeCB(0, svcUuid, paramID, &pValue, len);
 
-                }
+
             }
         }
         else{
             //ERROR
         }
+//        Semaphore_post(lsmSem);
     }
 }
 

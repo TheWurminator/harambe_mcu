@@ -163,8 +163,8 @@ Void printData(){
     for(;;){
         Semaphore_pend(printSem, BIOS_WAIT_FOREVER);
         if(i < 5){
-//            System_printf("Accel %f %f %f \n", LSM9DS1calcAccel(imu.ax, &imu), LSM9DS1calcAccel(imu.ay, &imu), LSM9DS1calcAccel(imu.az, &imu));
-//            System_printf("Gyro %f %f %f \n", LSM9DS1calcGyro(imu.gx, &imu), LSM9DS1calcGyro(imu.gy, &imu), LSM9DS1calcGyro(imu.gz,&imu));
+            System_printf("Accel %f %f %f \n", LSM9DS1calcAccel(imu.ax, &imu), LSM9DS1calcAccel(imu.ay, &imu), LSM9DS1calcAccel(imu.az, &imu));
+            System_printf("Gyro %f %f %f \n", LSM9DS1calcGyro(imu.gx, &imu), LSM9DS1calcGyro(imu.gy, &imu), LSM9DS1calcGyro(imu.gz,&imu));
             accel[i][0] = LSM9DS1calcAccel(imu.ax, &imu);
             accel[i][1] = LSM9DS1calcAccel(imu.ay, &imu);
             accel[i][2] = LSM9DS1calcAccel(imu.az, &imu);
@@ -226,6 +226,7 @@ Void stnFxn()
             }
             System_printf("%d, %d, %d, %d, %d\n", speeds[0], speeds[1], speeds[2], speeds[3], speeds[4]);
             System_flush();
+            Semaphore_post(lsmSem);
             //Really need to collect the speed 5 times
         }
     }
@@ -244,9 +245,6 @@ Void calculationFxn(){
     for(;;){
         int_fast16_t ret = Mailbox_pend(mbx, &supermesseji, BIOS_WAIT_FOREVER);
         if (ret){
-            if(deltaAccel > 2.0 || deltaGyro > 2.0){
-                //Do bluetooth
-            }
             System_printf("haha it's working\n");
             System_printf("The value for deltaaccel is %f\n", supermesseji.deltaAccel);
             System_printf("The value for deltagyro is %f\n", supermesseji.deltaGyro);

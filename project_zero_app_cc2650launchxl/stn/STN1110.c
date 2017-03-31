@@ -61,18 +61,18 @@ uint8_t elmCheck(STN1110 *val){
 
 uint8_t begin(STN1110 *val){
     //Check to see if the ELM327 is present
-   if(elmCheck(val)){
-       //Turning off echo
-       UART_write(val->uart, &noEcho, 4);
-       UART_write(val->uart, &newline, 1);
-       char x = 0;
-       uint8_t checkflg = 0;
-       while(UART_read(val->uart, &x, 1)){
-           if(x == 'K') checkflg++;
-       }
-       if (checkflg) return ELM_SUCCESS;
-       return 1;
+   while(!elmCheck(val)){
+
    }
+   //Turning off echo
+   UART_write(val->uart, &noEcho, 4);
+   UART_write(val->uart, &newline, 1);
+   char x = 0;
+   uint8_t checkflg = 0;
+   while(UART_read(val->uart, &x, 1)){
+       if(x == 'K') checkflg++;
+   }
+   if (checkflg) return ELM_SUCCESS;
    else return 1;
 }
 
