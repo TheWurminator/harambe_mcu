@@ -351,11 +351,11 @@ void other_createTask(void){
     Task_Params taskParams;
 
     //Making stuff for the LSM
-//    Task_Params_init(&taskParams);
-//    taskParams.stack = LSMTaskStack;
-//    taskParams.stackSize = OTHER_STACK_SIZE;
-//    taskParams.priority = OTHER_TASK_PRIORITY;
-//    Task_construct(&LSMTask, LSMfxn, &taskParams, NULL);
+    Task_Params_init(&taskParams);
+    taskParams.stack = LSMTaskStack;
+    taskParams.stackSize = OTHER_STACK_SIZE;
+    taskParams.priority = OTHER_TASK_PRIORITY;
+    Task_construct(&LSMTask, LSMfxn, &taskParams, NULL);
 
     //Making stuff for the STN
     Task_Params_init(&taskParams);
@@ -364,12 +364,12 @@ void other_createTask(void){
     taskParams.priority = OTHER_TASK_PRIORITY;
     Task_construct(&STNTask, STNfxn, &taskParams, NULL);
 
-    //Making stuff for the Calc task
-//    Task_Params_init(&taskParams);
-//    taskParams.stack = CalcTaskStack;
-//    taskParams.stackSize = OTHER_STACK_SIZE;
-//    taskParams.priority = OTHER_TASK_PRIORITY;
-//    Task_construct(&CalcTask, Calcfxn, &taskParams, NULL);
+//    Making stuff for the Calc task
+    Task_Params_init(&taskParams);
+    taskParams.stack = CalcTaskStack;
+    taskParams.stackSize = OTHER_STACK_SIZE;
+    taskParams.priority = OTHER_TASK_PRIORITY;
+    Task_construct(&CalcTask, Calcfxn, &taskParams, NULL);
 }
 
 //STN1110 stuff
@@ -400,10 +400,12 @@ Void STNfxn(){
             uint8_t speed = getSpeed(&lala);
             System_printf("%d\n", speed);
             System_flush();
-//            messeji frank;
-//            frank.uid = 1;
-//            frank.intval = speed;
-//            int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
+            messeji frank;
+            frank.uid = 1;
+            frank.intval = speed;
+            int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
+            Semaphore_post(lsmSem);
+
         }
     }
     else{
@@ -445,11 +447,13 @@ Void LSMfxn(){
         double magGyro = sqrt(pow((double)gyro[1][0],2.0) + pow((double)gyro[1][1],2.0) + pow((double)gyro[1][2],2.0));
         System_printf("%f %f", magAccel, magGyro);
         System_flush();
-//        messeji frank;
-//        frank.uid = 2;
-//        frank.deltaAccel = magAccel;
-//        frank.deltaGyro = magGyro;
-//        int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
+
+        messeji frank;
+        frank.uid = 2;
+        frank.deltaAccel = magAccel;
+        frank.deltaGyro = magGyro;
+        int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
+        Semaphore_post(stnSem);
     }
 }
 
@@ -499,6 +503,8 @@ Void Calcfxn(){
         int_fast16_t ret = Mailbox_pend(mbx, &frank, BIOS_WAIT_FOREVER);
         if(ret){
             if(frank.uid == 1){
+                System_printf("Got data from stn");
+                System_flush();
                 speedVals[stnCount] = frank.intval;
                 stnCount++;
             }
@@ -509,12 +515,12 @@ Void Calcfxn(){
                 System_flush();
                 lsmCount++;
             }
-            if(lsmCount == 5){
+            if(lsmCount == 5 && stnCount == 5){
                 //THIS IS THE FINAL CALCULATION
                 DataService_SetParameter(DS_STRING_ID, sizeof(initString2), initString2);
                 user_service_ValueChangeCB(0, svcUuid, paramID, &pValue, len);
-
-
+                lsmCount = 0;
+                stnCount = 0;
             }
         }
         else{
