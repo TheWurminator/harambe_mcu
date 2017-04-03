@@ -494,7 +494,7 @@ Void Calcfxn(){
     double finalSpeed = 0.0;
     uint16_t svcUuid = DATA_SERVICE_SERV_UUID;
     uint8_t paramID = 0;
-    uint8_t pValue = 121;
+    uint8_t pValue = 100;
     uint16_t len = 0x0003;
     uint8_t initString2[] = "yes";
 
@@ -511,6 +511,8 @@ Void Calcfxn(){
             if(frank.uid == 2){
                 gyroVals[lsmCount] = frank.deltaGyro;
                 accelVals[lsmCount] = frank.deltaAccel;
+                DataService_SetParameter(DS_STREAM_ID, sizeof(frank.deltaGyro), &accelVals[lsmCount]);
+                //user_service_ValueChangeCB(0, svcUuid, 1, &accelVals[lsmCount], 4);
                 System_printf("Got data from lsm");
                 System_flush();
                 lsmCount++;
@@ -1283,6 +1285,8 @@ static void user_service_ValueChangeCB( uint16_t connHandle, uint16_t svcUuid,
                                         uint8_t paramID, uint8_t *pValue,
                                         uint16_t len )
 {
+    System_printf("\n%u %u %u 0x%x %u\n", connHandle, svcUuid, paramID, pValue, len);
+    System_flush();
 
   user_enqueueCharDataMsg(APP_MSG_SERVICE_WRITE, connHandle, svcUuid, paramID,
                           pValue, len);
