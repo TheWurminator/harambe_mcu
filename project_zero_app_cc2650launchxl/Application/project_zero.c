@@ -34,6 +34,7 @@
  * INCLUDES
  */
 #include <string.h>
+#include <stdio.h>
 
 #define xdc_runtime_Log_DISABLE_ALL 1  // Add to disable logs from this file
 
@@ -207,14 +208,13 @@ static uint8_t advertData[] =
   DEFAULT_DISCOVERABLE_MODE | GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED,
 
   // complete name
-  13,
+  8,
   GAP_ADTYPE_LOCAL_NAME_COMPLETE,
-  'P', 'r', 'o', 'j', 'e', 'c', 't', ' ', 'Z', 'e', 'r', 'o',
+  'H', 'A', 'R', 'A', 'M', 'B', 'E',
 
 };
-
 // GAP GATT Attributes
-static uint8_t attDeviceName[GAP_DEVICE_NAME_LEN] = "Project Zero";
+static uint8_t attDeviceName[GAP_DEVICE_NAME_LEN] = "HARAMBE";
 
 // Globals used for ATT Response retransmission
 static gattMsgEvent_t *pAttRsp = NULL;
@@ -312,8 +312,8 @@ static DataServiceCBs_t user_Data_ServiceCBs =
 typedef struct{
     uint8_t uid;
     uint8_t intval;
-    double deltaAccel;
-    double deltaGyro;
+    float deltaAccel;
+    float deltaGyro;
 }messeji;
 
 /*********************************************************************
@@ -405,7 +405,6 @@ Void STNfxn(){
             frank.intval = speed;
             int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
             Semaphore_post(lsmSem);
-
         }
     }
     else{
@@ -430,8 +429,6 @@ Void LSMfxn(){
     Semaphore_post(stnInit);
     while(1){
         Semaphore_pend(lsmSem, BIOS_WAIT_FOREVER);
-        System_printf("wefiojewoifjweoifjwioef\n");
-        System_flush();
         LSM9DS1readAccel(&imu);
         LSM9DS1readGyro(&imu);
         //Post to the mailbox
@@ -450,8 +447,8 @@ Void LSMfxn(){
 
         messeji frank;
         frank.uid = 2;
-        frank.deltaAccel = magAccel;
-        frank.deltaGyro = magGyro;
+        frank.deltaAccel = (float)magAccel;
+        frank.deltaGyro = (float)magGyro;
         int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
         Semaphore_post(stnSem);
     }
@@ -468,19 +465,6 @@ void resetLSM(){
     //We're done resetting the LSM
 }
 
-//This function performs the actual calculation
-
-//       uint16_t svcUuid = DATA_SERVICE_SERV_UUID;
-//       uint8_t paramID = 0;
-    //   uint8_t *pValue = yes;
-//        uint16_t len = 0x0003;
-//       uint8_t initString2[] = "yes";
-//      System_printf("inside\n");
-//      System_flush();
-
-     // DataService_SetParameter(DS_STRING_ID, sizeof(initString2), initString2);
-     // user_service_ValueChangeCB(connHandle, svcUuid, paramID, pValue, len);
-
 Void Calcfxn(){
     //Pending on one mailbox
     //Will differentiate by ID for the STN and the LSM
@@ -492,10 +476,7 @@ Void Calcfxn(){
     double finalGyro = 0.0;
     double finalAccel = 0.0;
     double finalSpeed = 0.0;
-    uint16_t svcUuid = DATA_SERVICE_SERV_UUID;
-    uint8_t paramID = 0;
-    uint8_t pValue = 100;
-    uint16_t len = 0x0003;
+
     uint8_t initString2[] = "yes";
 
     while(1){
@@ -507,20 +488,25 @@ Void Calcfxn(){
                 System_flush();
                 speedVals[stnCount] = frank.intval;
                 stnCount++;
+                DataService_SetParameter(DS_SPEED_ID, sizeof(frank.intval), &frank.intval);
             }
             if(frank.uid == 2){
                 gyroVals[lsmCount] = frank.deltaGyro;
                 accelVals[lsmCount] = frank.deltaAccel;
-                DataService_SetParameter(DS_STREAM_ID, sizeof(frank.deltaGyro), &accelVals[lsmCount]);
-                //user_service_ValueChangeCB(0, svcUuid, 1, &accelVals[lsmCount], 4);
+                float l = 20.04;
+                char doublestring[8] = {0};
+//                sprintf(doublestring, "\n%.2f\n", l);
+//                System_printf("%s\n", doublestring);
+//                System_flush();
+                DataService_SetParameter(DS_GYRO_ID, sizeof(float), &frank.deltaGyro);
+                DataService_SetParameter(DS_ACCEL_ID, sizeof(float), &frank.deltaAccel);
                 System_printf("Got data from lsm");
                 System_flush();
                 lsmCount++;
             }
             if(lsmCount == 5 && stnCount == 5){
                 //THIS IS THE FINAL CALCULATION
-                DataService_SetParameter(DS_STRING_ID, sizeof(initString2), initString2);
-                user_service_ValueChangeCB(0, svcUuid, paramID, &pValue, len);
+                DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString2), initString2);
                 lsmCount = 0;
                 stnCount = 0;
             }
@@ -633,11 +619,15 @@ static void ProjectZero_init(void)
   // Placeholder variable for characteristic intialization
   uint8_t initVal[40] = {0};
   uint8_t initString[] = "This is a pretty long string, isn't it!";
-
-
+  double lala= 0.0;
+  double accel = 0.0;
+  uint8_t speed = 0;
   // Initalization of characteristics in Data_Service that can provide data.
-  DataService_SetParameter(DS_STRING_ID, sizeof(initString), initString);
-  DataService_SetParameter(DS_STREAM_ID, DS_STREAM_LEN, initVal);
+  DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString), initString);
+  DataService_SetParameter(DS_GYRO_ID, sizeof(double), &lala);
+  DataService_SetParameter(DS_ACCEL_ID, sizeof(double), &accel);
+  DataService_SetParameter(DS_SPEED_ID, sizeof(uint8_t), &speed);
+
 
   // Start the stack in Peripheral mode.
   VOID GAPRole_StartDevice(&user_gapRoleCBs);
@@ -965,32 +955,23 @@ void user_DataService_ValueChangeHandler(char_data_t *pCharData)
 {
   // Value to hold the received string for printing via Log, as Log printouts
   // happen in the Idle task, and so need to refer to a global/static variable.
-  static uint8_t received_string[DS_STRING_LEN] = {0};
+//  static uint8_t received_string[DS_STRING_LEN] = {0};
 
   switch (pCharData->paramID)
   {
-    case DS_STRING_ID:
-      // Do something useful with pCharData->data here
-      // -------------------------
-      // Copy received data to holder array, ensuring NULL termination.
-      memset(received_string, 0, DS_STRING_LEN);
-      memcpy(received_string, pCharData->data, DS_STRING_LEN-1);
-      // Needed to copy before log statement, as the holder array remains after
-      // the pCharData message has been freed and reused for something else.
-      //Log_info3("Value Change msg: %s %s: %s",
-//                (IArg)"Data Service",
-//                (IArg)"String",
-//                (IArg)received_string);
-      break;
-
-    case DS_STREAM_ID:
-      //Log_info3("Value Change msg: Data Service Stream: %02x:%02x:%02x...",
-//                (IArg)pCharData->data[0],
-//                (IArg)pCharData->data[1],
-//                (IArg)pCharData->data[2]);
-      // -------------------------
-      // Do something useful with pCharData->data here
-      break;
+//    case DS_CALCULATION_ID:
+//      // Do something useful with pCharData->data here
+//      // -------------------------
+//      // Copy received data to holder array, ensuring NULL termination.
+//      memset(received_string, 0, DS_STRING_LEN);
+//      memcpy(received_string, pCharData->data, DS_STRING_LEN-1);
+//      // Needed to copy before log statement, as the holder array remains after
+//      // the pCharData message has been freed and reused for something else.
+//      //Log_info3("Value Change msg: %s %s: %s",
+////                (IArg)"Data Service",
+////                (IArg)"String",
+////                (IArg)received_string);
+//      break;
 
   default:
     return;
