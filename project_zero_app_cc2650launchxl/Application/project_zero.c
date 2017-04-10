@@ -403,6 +403,7 @@ Void STNfxn(){
             messeji frank;
             frank.uid = 1;
             frank.intval = speed;
+            Task_sleep(1000);
             int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
             Semaphore_post(lsmSem);
         }
@@ -449,6 +450,7 @@ Void LSMfxn(){
         frank.uid = 2;
         frank.deltaAccel = (float)magAccel;
         frank.deltaGyro = (float)magGyro;
+        Task_sleep(1000);
         int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
         Semaphore_post(stnSem);
     }
@@ -495,9 +497,6 @@ Void Calcfxn(){
                 accelVals[lsmCount] = frank.deltaAccel;
                 float l = 20.04;
                 char doublestring[8] = {0};
-//                sprintf(doublestring, "\n%.2f\n", l);
-//                System_printf("%s\n", doublestring);
-//                System_flush();
                 DataService_SetParameter(DS_GYRO_ID, sizeof(float), &frank.deltaGyro);
                 DataService_SetParameter(DS_ACCEL_ID, sizeof(float), &frank.deltaAccel);
                 System_printf("Got data from lsm");
