@@ -129,16 +129,7 @@ int main()
 
   PIN_init(BoardGpioInitTable);
 
-
-//#ifndef POWER_SAVING
-//  /* Set constraints for Standby, powerdown and idle mode */
-//  Power_setConstraint(PowerCC26XX_SB_DISALLOW);
-//  Power_setConstraint(PowerCC26XX_IDLE_PD_DISALLOW);
-//#endif // POWER_SAVING
-
-  /* Initialize the RTOS Log formatting and output to UART in Idle thread.
-   * Note: Define xdc_runtime_Log_DISABLE_ALL to remove all impact of Log.
-   * Note: NULL as Params gives 115200,8,N,1 and Blocking mode */
+  //Initializing interfaces
   UART_init();
   I2C_init();
 

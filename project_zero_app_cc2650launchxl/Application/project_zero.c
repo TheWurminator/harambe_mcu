@@ -312,8 +312,10 @@ static DataServiceCBs_t user_Data_ServiceCBs =
 typedef struct{
     uint8_t uid;
     uint8_t intval;
-    float deltaAccel;
-    float deltaGyro;
+    float accelx;
+    float accely;
+    float magnitudeAccel;
+    float magnitudeGyro;
 }messeji;
 
 /*********************************************************************
@@ -443,13 +445,15 @@ Void LSMfxn(){
         gyro[1][2] = LSM9DS1calcGyro(imu.gz, &imu);
         double magAccel = sqrt(pow((double)accel[1][0],2.0) + pow((double)accel[1][2],2.0) + pow((double)accel[1][1],2.0));
         double magGyro = sqrt(pow((double)gyro[1][0],2.0) + pow((double)gyro[1][1],2.0) + pow((double)gyro[1][2],2.0));
-        System_printf("%f %f", magAccel, magGyro);
-        System_flush();
+//        System_printf("%f %f", magAccel, magGyro);
+//        System_flush();
 
         messeji frank;
         frank.uid = 2;
-        frank.deltaAccel = (float)magAccel;
-        frank.deltaGyro = (float)magGyro;
+        frank.magnitudeAccel = (float)magAccel;
+        frank.magnitudeGyro = (float)magGyro;
+        frank.accelx = accel[1][0];
+        frank.accely = accel[1][1];
         Task_sleep(1000);
         int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
         Semaphore_post(stnSem);
@@ -490,15 +494,15 @@ Void Calcfxn(){
                 System_flush();
                 speedVals[stnCount] = frank.intval;
                 stnCount++;
+                //Sending vehicle speed to the phone
                 DataService_SetParameter(DS_SPEED_ID, sizeof(frank.intval), &frank.intval);
             }
             if(frank.uid == 2){
-                gyroVals[lsmCount] = frank.deltaGyro;
-                accelVals[lsmCount] = frank.deltaAccel;
-                float l = 20.04;
-                char doublestring[8] = {0};
-                DataService_SetParameter(DS_GYRO_ID, sizeof(float), &frank.deltaGyro);
-                DataService_SetParameter(DS_ACCEL_ID, sizeof(float), &frank.deltaAccel);
+                //Sending the x and y components of the acceleration to the phone
+                DataService_SetParameter(DS_ACCELX_ID, sizeof(float), &frank.accelx);
+                DataService_SetParameter(DS_ACCELY_ID, sizeof(float), &frank.accely);
+                DataService_SetParameter(DS_MAGACCEL_ID, sizeof(float), &frank.magnitudeAccel);
+                DataService_SetParameter(DS_MAGGYRO_ID, sizeof(float), &frank.magnitudeGyro);
                 System_printf("Got data from lsm");
                 System_flush();
                 lsmCount++;
@@ -615,17 +619,18 @@ static void ProjectZero_init(void)
 
   DataService_RegisterAppCBs( &user_Data_ServiceCBs );
 
-  // Placeholder variable for characteristic intialization
-  uint8_t initVal[40] = {0};
+  // Placeholder variables for characteristic initialization
   uint8_t initString[] = "This is a pretty long string, isn't it!";
   double lala= 0.0;
-  double accel = 0.0;
   uint8_t speed = 0;
-  // Initalization of characteristics in Data_Service that can provide data.
+
+  // Initialization of characteristics in Data_Service that can provide data.
   DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString), initString);
-  DataService_SetParameter(DS_GYRO_ID, sizeof(double), &lala);
-  DataService_SetParameter(DS_ACCEL_ID, sizeof(double), &accel);
+  DataService_SetParameter(DS_MAGGYRO_ID, sizeof(double), &lala);
+  DataService_SetParameter(DS_MAGACCEL_ID, sizeof(double), &lala);
   DataService_SetParameter(DS_SPEED_ID, sizeof(uint8_t), &speed);
+  DataService_SetParameter(DS_ACCELX_ID, sizeof(double), &lala);
+  DataService_SetParameter(DS_ACCELY_ID, sizeof(double), &lala);
 
 
   // Start the stack in Peripheral mode.
@@ -790,7 +795,6 @@ static void user_processApplicationMessage(app_msg_t *pMsg)
 
   }
 }
-
 
 /******************************************************************************
  *****************************************************************************
