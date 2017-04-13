@@ -112,6 +112,10 @@ extern const ti_sysbios_knl_Mailbox_Handle mbx;
 #define PRZ_PERIODIC_EVT                      0x0004
 #define PRZ_CONN_EVT_END_EVT                  0x0008
 
+#define SPEEDCOUNT = 50
+#define ACCELCOUNT = 50
+#define SPEEDTHRESHOLD = 3;`
+
 /*********************************************************************
  * TYPEDEFS
  */
@@ -445,8 +449,6 @@ Void LSMfxn(){
         gyro[1][2] = LSM9DS1calcGyro(imu.gz, &imu);
         double magAccel = sqrt(pow((double)accel[1][0],2.0) + pow((double)accel[1][2],2.0) + pow((double)accel[1][1],2.0));
         double magGyro = sqrt(pow((double)gyro[1][0],2.0) + pow((double)gyro[1][1],2.0) + pow((double)gyro[1][2],2.0));
-//        System_printf("%f %f", magAccel, magGyro);
-//        System_flush();
 
         messeji frank;
         frank.uid = 2;
@@ -471,19 +473,30 @@ void resetLSM(){
     //We're done resetting the LSM
 }
 
+typedef struct{
+    float accelx;
+    float accely;
+    float magaccel;
+}accelstr;
+
+float gyroVals[100];
+
+accelstr accelVals[50];
+uint8_t speedVals[50];
+uint8_t initString1[] = "DONE";
+uint8_t initString2[] = "yes";
+uint8_t initString3[] = "no";
+int speedcount = 50;
+int speedthreshold = 3;
 Void Calcfxn(){
     //Pending on one mailbox
     //Will differentiate by ID for the STN and the LSM
     uint8_t lsmCount = 0;
     uint8_t stnCount = 0;
-    uint8_t speedVals[5];
-    double gyroVals[5];
-    double accelVals[5];
+
     double finalGyro = 0.0;
     double finalAccel = 0.0;
     double finalSpeed = 0.0;
-
-    uint8_t initString2[] = "yes";
 
     while(1){
         messeji frank;
@@ -503,13 +516,56 @@ Void Calcfxn(){
                 DataService_SetParameter(DS_ACCELY_ID, sizeof(float), &frank.accely);
                 DataService_SetParameter(DS_MAGACCEL_ID, sizeof(float), &frank.magnitudeAccel);
                 DataService_SetParameter(DS_MAGGYRO_ID, sizeof(float), &frank.magnitudeGyro);
+                accelstr thing;
+                thing.accelx = frank.accelx;
+                thing.accely = frank.accely;
+                thing.magaccel = frank.magnitudeAccel;
+                accelVals[lsmCount] = thing;
                 System_printf("Got data from lsm");
                 System_flush();
                 lsmCount++;
             }
-            if(lsmCount == 5 && stnCount == 5){
+            if((lsmCount == speedcount) && (stnCount == speedcount)){
+                //If the difference between the final and the initial speed is greater than a certain threshold, we will
+                //Trigger an accident
+                //Find the delta speed
+                uint8_t lowest = 255;
+                uint8_t highest = 0;
+                int i = 0;
+                for(i=0;i<speedcount;i++){
+                    if(speedVals[i] < lowest){
+                        lowest = speedVals[i];
+                    }
+                    if (speedVals[i] > highest){
+                        highest = speedVals[i];
+                    }
+                }
+                int flag = 0;
+                for(i=0;i<50;i++){
+                    if(accelVals[i].magaccel >= 2.0){
+                        flag = 1;
+                        break;
+                    }
+                }
+                if(flag){
+                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString2), initString2);
+                    Task_sleep(100000);
+                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString1), initString1);
+                }
+                else{
+                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString3), initString3);
+                    Task_sleep(1000);
+                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString1), initString1);
+                }
+
+//                if (highest - lowest > speedthreshold){
+//                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString2), initString2);
+//                }
+//                else{
+//                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString3), initString3);
+//                }
+
                 //THIS IS THE FINAL CALCULATION
-                DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString2), initString2);
                 lsmCount = 0;
                 stnCount = 0;
             }
@@ -517,7 +573,6 @@ Void Calcfxn(){
         else{
             //ERROR
         }
-//        Semaphore_post(lsmSem);
     }
 }
 
