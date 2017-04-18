@@ -411,7 +411,6 @@ Void STNfxn(){
             frank.intval = speed;
             Task_sleep(1000);
             int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
-            Semaphore_post(lsmSem);
         }
     }
     else{
@@ -470,7 +469,7 @@ Void LSMfxn(){
         frank.accely = accel[1][1];
         Task_sleep(1000);
         int_fast16_t ret = Mailbox_post(mbx, &frank, BIOS_WAIT_FOREVER);
-        Semaphore_post(stnSem);
+
     }
 }
 
@@ -522,6 +521,7 @@ Void Calcfxn(){
                 stnCount++;
                 //Sending vehicle speed to the phone
                 DataService_SetParameter(DS_SPEED_ID, sizeof(frank.intval), &frank.intval);
+                Semaphore_post(lsmSem);
             }
             if(frank.uid == 2){
                 if (firstever){
@@ -545,6 +545,7 @@ Void Calcfxn(){
                 System_printf("Got data from lsm");
                 System_flush();
                 lsmCount++;
+                Semaphore_post(stnSem);
             }
             if((lsmCount == speedcount) && (stnCount == speedcount)){
                 //If the difference between the final and the initial speed is greater than a certain threshold, we will
@@ -564,9 +565,9 @@ Void Calcfxn(){
                     }
                 }
                 //If we've hit a speed threshold we can trigger the flag
-                if (highest - lowest > speedthreshold){
-                    flag = 1;
-                }
+//                if (highest - lowest > speedthreshold){
+//                    flag = 1;
+//                }
                 if (!flag){
                     //Seeing if we have an accel x or accel y greater than a certain value, or the magnitude is greater
                     for(i=0;i<50;i++){
@@ -576,9 +577,10 @@ Void Calcfxn(){
                         }
                     }
                 }
+
                 if(flag){
                     DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString2), initString2);
-                    Task_sleep(1000000);
+                    Task_sleep(200000);
                     DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString1), initString1);
                 }
                 else{
@@ -590,6 +592,7 @@ Void Calcfxn(){
                 //THIS IS THE FINAL CALCULATION
                 lsmCount = 0;
                 stnCount = 0;
+                Semaphore_post(lsmSem);
 
             }
         }
