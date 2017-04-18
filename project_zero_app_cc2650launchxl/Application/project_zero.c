@@ -421,6 +421,12 @@ Void STNfxn(){
     }
 }
 
+
+uint8_t firstever = 1;
+float defgyrox = 0;
+float defgyroy = 0;
+float defgyroz = 0;
+
 //LSM Stuff
 LSM9DS1 imu;
 Void LSMfxn(){
@@ -438,18 +444,24 @@ Void LSMfxn(){
         Semaphore_pend(lsmSem, BIOS_WAIT_FOREVER);
         LSM9DS1readAccel(&imu);
         LSM9DS1readGyro(&imu);
-        //Post to the mailbox
-        float accel[1][3];
         float gyro[1][3];
+        float accel[1][3];
         accel[1][0] = LSM9DS1calcAccel(imu.ax, &imu);
         accel[1][1] = LSM9DS1calcAccel(imu.ay, &imu);
         accel[1][2] = LSM9DS1calcAccel(imu.az, &imu);
         gyro[1][0] = LSM9DS1calcGyro(imu.gx, &imu);
         gyro[1][1] = LSM9DS1calcGyro(imu.gy, &imu);
         gyro[1][2] = LSM9DS1calcGyro(imu.gz, &imu);
-        double magAccel = sqrt(pow((double)accel[1][0],2.0) + pow((double)accel[1][2],2.0) + pow((double)accel[1][1],2.0));
-        double magGyro = sqrt(pow((double)gyro[1][0],2.0) + pow((double)gyro[1][1],2.0) + pow((double)gyro[1][2],2.0));
+        if(firstever){
+            defgyrox = gyro[1][0];
+            defgyroy = gyro[1][1];
+            defgyroz = gyro[1][2];
+            firstever = 0;
+        }
+        //Post to the mailbox
 
+        double magAccel = sqrt(pow((double)accel[1][0],2.0) + pow((double)accel[1][1],2.0));
+        double magGyro = sqrt(pow((double)gyro[1][0],2.0) + pow((double)gyro[1][2],2.0));
         messeji frank;
         frank.uid = 2;
         frank.magnitudeAccel = (float)magAccel;
@@ -476,6 +488,7 @@ void resetLSM(){
 typedef struct{
     float accelx;
     float accely;
+    float accelz;
     float magaccel;
 }accelstr;
 
@@ -487,13 +500,13 @@ uint8_t initString1[] = "DONE";
 uint8_t initString2[] = "yes";
 uint8_t initString3[] = "no";
 int speedcount = 50;
-int speedthreshold = 3;
+int speedthreshold = 25;
+
 Void Calcfxn(){
     //Pending on one mailbox
     //Will differentiate by ID for the STN and the LSM
     uint8_t lsmCount = 0;
     uint8_t stnCount = 0;
-
     double finalGyro = 0.0;
     double finalAccel = 0.0;
     double finalSpeed = 0.0;
@@ -511,11 +524,19 @@ Void Calcfxn(){
                 DataService_SetParameter(DS_SPEED_ID, sizeof(frank.intval), &frank.intval);
             }
             if(frank.uid == 2){
+                if (firstever){
+
+                }
                 //Sending the x and y components of the acceleration to the phone
                 DataService_SetParameter(DS_ACCELX_ID, sizeof(float), &frank.accelx);
                 DataService_SetParameter(DS_ACCELY_ID, sizeof(float), &frank.accely);
                 DataService_SetParameter(DS_MAGACCEL_ID, sizeof(float), &frank.magnitudeAccel);
                 DataService_SetParameter(DS_MAGGYRO_ID, sizeof(float), &frank.magnitudeGyro);
+                if(frank.magnitudeGyro > 250.0){
+                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString2), initString2);
+                    Task_sleep(1000000);
+                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString1), initString1);
+                }
                 accelstr thing;
                 thing.accelx = frank.accelx;
                 thing.accely = frank.accely;
@@ -529,9 +550,11 @@ Void Calcfxn(){
                 //If the difference between the final and the initial speed is greater than a certain threshold, we will
                 //Trigger an accident
                 //Find the delta speed
-                uint8_t lowest = 255;
-                uint8_t highest = 0;
+                int16_t lowest = 255;
+                int16_t highest = 0;
                 int i = 0;
+                int flag = 0;
+//                Getting the highest and lowest speed over 50 samples
                 for(i=0;i<speedcount;i++){
                     if(speedVals[i] < lowest){
                         lowest = speedVals[i];
@@ -540,34 +563,34 @@ Void Calcfxn(){
                         highest = speedVals[i];
                     }
                 }
-                int flag = 0;
-                for(i=0;i<50;i++){
-                    if(accelVals[i].magaccel >= 2.0){
-                        flag = 1;
-                        break;
+                //If we've hit a speed threshold we can trigger the flag
+                if (highest - lowest > speedthreshold){
+                    flag = 1;
+                }
+                if (!flag){
+                    //Seeing if we have an accel x or accel y greater than a certain value, or the magnitude is greater
+                    for(i=0;i<50;i++){
+                        if(accelVals[i].magaccel >= 0.6 || abs(accelVals[i].accelx) >= 0.7 || abs(accelVals[i].accely) >= 0.7){
+                            flag = 1;
+                            break;
+                        }
                     }
                 }
                 if(flag){
                     DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString2), initString2);
-                    Task_sleep(100000);
+                    Task_sleep(1000000);
                     DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString1), initString1);
                 }
                 else{
                     DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString3), initString3);
-                    Task_sleep(1000);
+//                    Task_sleep(100);
                     DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString1), initString1);
                 }
-
-//                if (highest - lowest > speedthreshold){
-//                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString2), initString2);
-//                }
-//                else{
-//                    DataService_SetParameter(DS_CALCULATION_ID, sizeof(initString3), initString3);
-//                }
 
                 //THIS IS THE FINAL CALCULATION
                 lsmCount = 0;
                 stnCount = 0;
+
             }
         }
         else{
